@@ -2,6 +2,8 @@
 
 include $(TOPDIR)/rules.mk
 
+SCAN_DEPS:= $(TOPDIR)/feeds/luci/luci.mk
+
 PKG_VERSION:=1.0.3
 PKG_RELEASE:=4
 PKG_LICENSE:=Apache-2.0

@@ -30,6 +30,7 @@ concurrency:
 
 jobs:
   build-kernels:
+    if: github.repository == 'openwrt/openwrt'
     name: Build all affected Kernels
     permissions:
       contents: read

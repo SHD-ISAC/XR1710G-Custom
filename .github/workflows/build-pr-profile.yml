@@ -9,4 +9,5 @@ permissions:
 
 jobs:
   build-pr-profile:
+    if: github.repository == 'openwrt/openwrt'
     uses: openwrt/actions-shared-workflows/.github/workflows/build-pr-profile.yml@main

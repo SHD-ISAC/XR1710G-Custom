@@ -152,7 +152,7 @@ Signed-off-by: Daniel Pawlik <pawlik.dan@gmail.com>
 +
  	err = airoha_npu_run_firmware(dev, base, &res);
  	if (err)
- 		return dev_err_probe(dev, err, "failed to run npu firmware\n");
+ 		return err;
 --- a/include/linux/soc/airoha/airoha_offload.h
 +++ b/include/linux/soc/airoha/airoha_offload.h
 @@ -178,6 +178,9 @@ struct airoha_npu {

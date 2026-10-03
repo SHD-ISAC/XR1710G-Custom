@@ -2,6 +2,8 @@
 
 include $(TOPDIR)/rules.mk
 
+SCAN_DEPS:= $(TOPDIR)/feeds/luci/luci.mk
+
 PKG_LICENSE:=Apache-2.0
 
 LUCI_TITLE:=LuCI W1700K Fan Control

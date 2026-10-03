@@ -545,7 +545,7 @@ Signed-off-by: Lorenzo Bianconi <lorenzo@kernel.org>
 +++ b/drivers/net/ethernet/airoha/airoha_eth.h
 @@ -45,6 +45,18 @@
  	 (_n) == 15 ? 128 :		\
- 	 (_n) ==  0 ? 1024 : 16)
+ 	 (_n) ==  0 ? 1024 : 32)
  
 +#define AIROHA_LRO_PAGE_ORDER		order_base_2(SZ_16K / PAGE_SIZE)
 +#define AIROHA_MAX_NUM_LRO_QUEUES	8

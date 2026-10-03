@@ -2,6 +2,8 @@
 
 include $(TOPDIR)/rules.mk
 
+SCAN_DEPS:= $(TOPDIR)/feeds/luci/luci.mk
+
 LUCI_TITLE:=LuCI Support for Wi-Fi MLO
 LUCI_DEPENDS:=+luci-base +luci-mod-network
 

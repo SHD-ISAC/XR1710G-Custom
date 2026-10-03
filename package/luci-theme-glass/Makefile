@@ -6,6 +6,8 @@
 
 include $(TOPDIR)/rules.mk
 
+SCAN_DEPS:= $(TOPDIR)/feeds/luci/luci.mk
+
 LUCI_TITLE:=Glass - Apple-inspired glassmorphism theme for LuCI
 LUCI_DEPENDS:=
 PKG_VERSION:=$(shell cat $(CURDIR)/ucode/template/themes/glass/version | tr -d '[:space:]')

@@ -21,6 +21,7 @@ concurrency:
 
 jobs:
   build-toolchains:
+    if: github.repository == 'openwrt/openwrt'
     name: Build Toolchains for each target
     permissions:
       contents: read

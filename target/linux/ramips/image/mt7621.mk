@@ -398,7 +398,7 @@ define Device/asus_rp-ac56
   DEVICE_MODEL := RP-AC56
   IMAGE_SIZE := 16000k
   DEVICE_PACKAGES := kmod-mt7603 kmod-mt76x2 \
-	kmod-sound-mt7620 -uboot-envtools
+	kmod-sound-mt7620 audio-support -uboot-envtools
   IMAGES += factory.bin
   IMAGE/factory.bin := append-kernel | append-rootfs | pad-rootfs | check-size
   IMAGE/sysupgrade.bin := append-kernel | append-rootfs | pad-rootfs | \
@@ -782,6 +782,20 @@ define Device/cudy_c200p
   DEVICE_PACKAGES := -uboot-envtools -wpad-basic-mbedtls kmod-usb3
 endef
 TARGET_DEVICES += cudy_c200p
+
+define Device/cudy_lt700-outdoor-v1
+  $(Device/dsa-migration)
+  DEVICE_VENDOR := Cudy
+  DEVICE_MODEL := LT700 Outdoor
+  DEVICE_VARIANT := v1
+  IMAGE_SIZE := 15872k
+  UIMAGE_NAME := R43
+  DEVICE_PACKAGES := kmod-mt7603 kmod-mt7615e kmod-mt7663-firmware-ap \
+	kmod-usb3 kmod-usb-net-cdc-ncm kmod-usb-serial-option comgt-ncm \
+	-uboot-envtools
+  SUPPORTED_DEVICES += R43
+endef
+TARGET_DEVICES += cudy_lt700-outdoor-v1
 
 define Device/cudy_m1300-v2
   $(Device/dsa-migration)
@@ -2228,7 +2242,7 @@ define Device/mediatek_ap-mt7621a-v60
   DEVICE_VENDOR := Mediatek
   DEVICE_MODEL := AP-MT7621A-V60 EVB
   DEVICE_PACKAGES := kmod-usb3 kmod-mmc-mtk kmod-sound-mt7620 \
-	-wpad-basic-mbedtls -uboot-envtools
+	audio-support -wpad-basic-mbedtls -uboot-envtools
 endef
 TARGET_DEVICES += mediatek_ap-mt7621a-v60
 
@@ -2294,7 +2308,7 @@ TARGET_DEVICES += mikrotik_ltap-2hnd
 define Device/mikrotik_routerboard-750gr3
   $(Device/MikroTik)
   DEVICE_MODEL := RouterBOARD 750Gr3
-  DEVICE_PACKAGES += -wpad-basic-mbedtls
+  DEVICE_PACKAGES += kmod-mmc-mtk -wpad-basic-mbedtls
   SUPPORTED_DEVICES += mikrotik,rb750gr3
 endef
 TARGET_DEVICES += mikrotik_routerboard-750gr3
@@ -2302,7 +2316,7 @@ TARGET_DEVICES += mikrotik_routerboard-750gr3
 define Device/mikrotik_routerboard-760igs
   $(Device/MikroTik)
   DEVICE_MODEL := RouterBOARD 760iGS
-  DEVICE_PACKAGES += kmod-sfp -wpad-basic-mbedtls
+  DEVICE_PACKAGES += kmod-mmc-mtk kmod-sfp -wpad-basic-mbedtls
 endef
 TARGET_DEVICES += mikrotik_routerboard-760igs
 
@@ -2317,7 +2331,7 @@ TARGET_DEVICES += mikrotik_routerboard-m11g
 define Device/mikrotik_routerboard-m33g
   $(Device/MikroTik)
   DEVICE_MODEL := RouterBOARD M33G
-  DEVICE_PACKAGES := kmod-usb3 -wpad-basic-mbedtls
+  DEVICE_PACKAGES := kmod-mmc-mtk kmod-usb3 -wpad-basic-mbedtls
   SUPPORTED_DEVICES += mikrotik,rbm33g
 endef
 TARGET_DEVICES += mikrotik_routerboard-m33g

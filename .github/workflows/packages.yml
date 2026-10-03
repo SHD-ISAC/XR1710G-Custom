@@ -30,6 +30,7 @@ concurrency:
 
 jobs:
   build-packages:
+    if: github.repository == 'openwrt/openwrt'
     name: Build all core packages for selected target
     permissions:
       contents: read

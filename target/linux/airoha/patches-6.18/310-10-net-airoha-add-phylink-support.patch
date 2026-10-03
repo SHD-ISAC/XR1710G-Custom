@@ -121,7 +121,7 @@ Signed-off-by: Christian Marangi <ansuelsmth@gmail.com>
  	.get_link		= ethtool_op_get_link,
  };
  
-@@ -3183,6 +3215,159 @@ bool airoha_is_valid_gdm_dev(struct airo
+@@ -3183,6 +3215,155 @@ bool airoha_is_valid_gdm_dev(struct airo
  	return false;
  }
  
@@ -208,7 +208,7 @@ Signed-off-by: Christian Marangi <ansuelsmth@gmail.com>
 +	struct device *dev = config->dev;
 +
 +	return fwnode_phylink_pcs_parse(dev_fwnode(dev), available_pcs,
-+					&num_possible_pcs);
++					num_possible_pcs);
 +}
 +
 +static int airoha_setup_phylink(struct net_device *netdev)
@@ -246,11 +246,7 @@ Signed-off-by: Christian Marangi <ansuelsmth@gmail.com>
 +					   MAC_10 | MAC_100 | MAC_1000 |
 +					   MAC_2500FD | MAC_5000FD | MAC_10000FD;
 +
-+		err = fwnode_phylink_pcs_parse(dev_fwnode(config->dev), NULL,
-+					       &dev->phylink_config.num_available_pcs);
-+		if (err)
-+			return err;
-+
++		config->num_possible_pcs = fwnode_phylink_pcs_count(dev_fwnode(config->dev));
 +		config->fill_available_pcs = airoha_fill_available_pcs;
 +
 +		__set_bit(PHY_INTERFACE_MODE_SGMII,

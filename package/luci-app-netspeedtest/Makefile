@@ -4,6 +4,8 @@
 
 include $(TOPDIR)/rules.mk
 
+SCAN_DEPS:= $(TOPDIR)/feeds/luci/luci.mk
+
 LUCI_NAME:=luci-app-netspeedtest
 
 LUCI_TITLE:=LuCI Net Speedtest

@@ -20,6 +20,7 @@ concurrency:
 
 jobs:
   build-push-containers:
+    if: github.repository == 'openwrt/openwrt'
     name: Build and Push all prebuilt containers
     permissions:
       contents: read
