@@ -19,20 +19,15 @@ Signed-off-by: Felix Fietkau <nbd@nbd.name>
  mt7996/mmio.c | 3 +++
  1 file changed, 3 insertions(+)
 
-diff --git a/mt7996/mmio.c b/mt7996/mmio.c
-index 0d7521d06981..ba064324a7cc 100644
 --- a/mt7996/mmio.c
 +++ b/mt7996/mmio.c
-@@ -490,6 +490,9 @@ int mt7996_mmio_wed_init(struct mt7996_dev *dev, void *pdev_ptr,
+@@ -490,6 +490,9 @@
  	if (!wed_enable)
  		return 0;
  
 +	if (hif2 && !mtk_wed_device_active(&dev->mt76.mmio.wed))
 +		return 0;
 +
- 	dev->mt76.hwrro_mode = is_mt7996(&dev->mt76) ? MT76_HWRRO_V3
- 						     : MT76_HWRRO_V3_1;
+ 	hif1_ofs = dev->hif2 ? MT_WFDMA0_PCIE1(0) - MT_WFDMA0(0) : 0;
  
--- 
-2.43.0
-
+ 	if (hif2)

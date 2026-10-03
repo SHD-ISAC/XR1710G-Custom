@@ -1,0 +1,97 @@
+name: XR1710G firmware
+
+on:
+  push:
+    branches: [xr1710g-custom]
+  pull_request:
+    branches: [xr1710g-custom, xr1710g-6.18-integration]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: xr1710g-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  firmware:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential clang flex bison gawk gettext \
+            git libncurses-dev libssl-dev zlib1g-dev python3 python3-dev \
+            python3-setuptools pkgconf cmake ninja-build cpio \
+            device-tree-compiler xsltproc libelf-dev file wget curl rsync \
+            unzip swig time
+          df -h .
+
+      - name: Install pinned feeds and select XR1710G
+        run: |
+          cp configs/xr1710g-feeds.conf feeds.conf
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+          cp configs/xr1710g.config .config
+          make defconfig
+          grep -qx 'CONFIG_TARGET_airoha_an7581_DEVICE_gemtek_xr1710g-ubi=y' .config
+          grep -qx 'CONFIG_IPV6=y' .config
+          grep -qx 'CONFIG_PACKAGE_luci-app-airoha-npu=y' .config
+          grep -qx 'CONFIG_PACKAGE_luci-app-w1700k-fancontrol=y' .config
+          ./scripts/diffconfig.sh > build.config
+
+      - name: Download sources
+        run: |
+          set -o pipefail
+          make download -j8 V=s 2>&1 | tee download.log
+
+      - name: Build firmware from source
+        run: |
+          set -o pipefail
+          make -j"$(nproc)" V=s 2>&1 | tee build.log
+
+      - name: Validate image outputs
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          out = Path('bin/targets/airoha/an7581')
+          profiles = json.loads((out / 'profiles.json').read_text())
+          device = profiles['profiles']['gemtek_xr1710g-ubi']
+          images = device['images']
+          assert any(x['type'] == 'sysupgrade' for x in images), images
+          for image in images:
+              assert (out / image['name']).stat().st_size > 0
+          print('XR1710G image metadata and files verified')
+          PY
+          cd bin/targets/airoha/an7581
+          sha256sum -c sha256sums
+
+      - name: Save build logs and configuration
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: xr1710g-build-logs-${{ github.run_id }}
+          path: |
+            build.log
+            download.log
+            build.config
+            logs/
+          retention-days: 14
+
+      - name: Save firmware
+        if: success()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: xr1710g-firmware-${{ github.sha }}
+          path: bin/targets/airoha/an7581/
+          if-no-files-found: error
+          retention-days: 14

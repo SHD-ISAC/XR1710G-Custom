@@ -11,16 +11,21 @@ Export the capability bandwidth and NSS helpers used by MediaTek's
 operating-mode handling so mt7996 can construct STA_REC_RA without
 confusing capability limits with the current operating mode.
 
+Use the 7.2 bandwidth capability helper in sta_info.c and derive the band
+from the live BSS link. Return conservative values for removed links.
+
 Signed-off-by: Yanghan Ye <yyh94306@gmail.com>
 Assisted-by: Codex:GPT-5.6-sol
 ---
  include/net/mac80211.h | 15 +++++++++++++++
- net/mac80211/vht.c     | 31 +++++++++++++++++++++++++++++++
- 2 files changed, 46 insertions(+)
+ net/mac80211/sta_info.c | 37 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 54 insertions(+)
 
 --- a/include/net/mac80211.h
 +++ b/include/net/mac80211.h
-@@ -7807,4 +7807,21 @@ void ieee80211_finalize_rx_omi_bw(struct ieee80211_link_sta *link_sta);
+@@ -8193,6 +8193,23 @@
+  */
+ void ieee80211_finalize_rx_omi_bw(struct ieee80211_link_sta *link_sta);
  
 +/**
 + * ieee80211_link_sta_cap_bw - get a link STA's bandwidth capability
@@ -42,22 +47,27 @@ Assisted-by: Codex:GPT-5.6-sol
  /* for older drivers - let's not document these ... */
  int ieee80211_emulate_add_chanctx(struct ieee80211_hw *hw,
  				  struct ieee80211_chanctx_conf *ctx);
---- a/net/mac80211/vht.c
-+++ b/net/mac80211/vht.c
-@@ -445,6 +445,37 @@ _ieee80211_sta_cap_rx_bw(struct link_sta_info *link_sta,
- 		   link_sta->rx_omi_bw_rx);
+--- a/net/mac80211/sta_info.c
++++ b/net/mac80211/sta_info.c
+@@ -3724,6 +3724,43 @@
+ 	return IEEE80211_STA_RX_BW_80;
  }
  
 +enum ieee80211_sta_rx_bandwidth
 +ieee80211_link_sta_cap_bw(struct ieee80211_link_sta *pub)
 +{
 +	struct sta_info *sta = container_of(pub->sta, struct sta_info, sta);
++	struct ieee80211_sub_if_data *sdata = get_bss_sdata(sta->sdata);
++	enum ieee80211_sta_rx_bandwidth bw = IEEE80211_STA_RX_BW_20;
 +	struct link_sta_info *link_sta;
-+	enum ieee80211_sta_rx_bandwidth bw;
++	struct ieee80211_link_data *link;
 +
 +	rcu_read_lock();
 +	link_sta = rcu_dereference(sta->link[pub->link_id]);
-+	bw = ieee80211_sta_cap_rx_bw(link_sta);
++	link = sdata ? rcu_dereference(sdata->link[pub->link_id]) : NULL;
++	if (link_sta && link && link->conf->chanreq.oper.chan)
++		bw = ieee80211_sta_bw_capability(link_sta,
++					       link->conf->chanreq.oper.chan->band);
 +	rcu_read_unlock();
 +
 +	return bw;
@@ -68,19 +78,18 @@ Assisted-by: Codex:GPT-5.6-sol
 +{
 +	struct sta_info *sta = container_of(pub->sta, struct sta_info, sta);
 +	struct link_sta_info *link_sta;
-+	u8 nss;
++	u8 nss = 1;
 +
 +	rcu_read_lock();
 +	link_sta = rcu_dereference(sta->link[pub->link_id]);
-+	nss = link_sta->capa_nss;
++	if (link_sta)
++		nss = link_sta->capa_nss;
 +	rcu_read_unlock();
 +
 +	return nss;
 +}
 +EXPORT_SYMBOL(ieee80211_link_sta_cap_nss);
 +
- enum nl80211_chan_width
- ieee80211_sta_cap_chan_bw(struct link_sta_info *link_sta)
- {
--- 
-2.51.0
+ /**
+  * ieee80211_sta_usable_bw - get STA's usable bandwidth capability
+  * @link_sta: the (link) STA to get the capability for

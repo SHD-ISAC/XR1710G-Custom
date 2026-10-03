@@ -27,18 +27,3 @@ index 4f080f15e..0d5263140 100644
  		memset(phy->chan_state, 0, sizeof(*phy->chan_state));
  
  	ret = dev->drv->set_channel(phy);
-diff --git a/scan.c b/scan.c
-index 2b5f30cef..010e815ff 100644
---- a/scan.c
-+++ b/scan.c
-@@ -208,6 +208,7 @@ int mt76_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
- 	dev->scan.vif = vif;
- 	dev->scan.phy = phy;
- 	dev->scan.mlink = mlink;
-+	set_bit(MT76_SCANNING, &phy->state);
- 	ieee80211_queue_delayed_work(dev->phy.hw, &dev->scan_work, 0);
- 
- out:
--- 
-2.45.2
-
