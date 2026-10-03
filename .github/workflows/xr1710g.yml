@@ -3,8 +3,10 @@ name: XR1710G firmware
 on:
   push:
     branches: [xr1710g-custom]
+    paths-ignore: ['docs/**']
   pull_request:
     branches: [xr1710g-custom, xr1710g-6.18-integration]
+    paths-ignore: ['docs/**']
   workflow_dispatch:
 
 permissions:
@@ -48,6 +50,20 @@ jobs:
           grep -qx 'CONFIG_PACKAGE_luci-app-w1700k-fancontrol=y' .config
           ./scripts/diffconfig.sh > build.config
 
+      - name: Restore build tools
+        id: build-tools-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            dl
+            build_dir/host
+            build_dir/hostpkg
+            build_dir/toolchain-*
+            staging_dir/host
+            staging_dir/hostpkg
+            staging_dir/toolchain-*
+          key: ${{ runner.os }}-xr1710g-tools-v1-${{ hashFiles('tools/**', 'toolchain/**', 'include/**', 'configs/**') }}
+
       - name: Download sources
         run: |
           set -o pipefail
@@ -74,6 +90,20 @@ jobs:
           PY
           cd bin/targets/airoha/an7581
           sha256sum -c sha256sums
+
+      - name: Cache build tools
+        if: always() && !cancelled() && steps.build-tools-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            dl
+            build_dir/host
+            build_dir/hostpkg
+            build_dir/toolchain-*
+            staging_dir/host
+            staging_dir/hostpkg
+            staging_dir/toolchain-*
+          key: ${{ runner.os }}-xr1710g-tools-v1-${{ hashFiles('tools/**', 'toolchain/**', 'include/**', 'configs/**') }}
 
       - name: Save build logs and configuration
         if: always()
