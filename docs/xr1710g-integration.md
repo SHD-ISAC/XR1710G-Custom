@@ -1,26 +1,69 @@
-# XR1710G integration status
+# XR1710G integration and build verification
 
-This branch integrates official OpenWrt main into YYH's
-`xr1710g-6.18-integration` device port.
+Official OpenWrt main is merged into YYH's `xr1710g-6.18-integration`
+device port. The tested firmware source is commit
+`f628bdc4dba371d9a0f00d3ba2ac392759e79d99`.
 
 - Device baseline: `c82129e7348fda30b9e2f90572e4f1b3c555c7f2`
-- Official main: `0d212bc523580e3bd20d18d646987ca488f8d0ee`
+- Official main at the integration cutoff: `0d212bc523580e3bd20d18d646987ca488f8d0ee`
 - Kernel: Linux 6.18.54
+- Wireless: mac80211 backports 7.2; mt76 2026.09.01~be5ce791
 - Target: `airoha/an7581`, `gemtek_xr1710g-ubi`
-- Status: kernel (644 patches), mac80211 and mt76 patch preparation passed.
-  Full firmware compilation is in progress.
-- Full firmware compilation and hardware tests have not passed for this commit.
 
-The original XR1710G flash layout and bootloader compatibility are preserved.
-Do not treat this development checkpoint as a tested firmware release.
+## Verified build
 
-The pinned feeds and device build seed are in `configs/`.
-Upstream multi-target workflows only run in the official OpenWrt repository.
-The `XR1710G firmware` workflow builds the complete image from source, checks
-image metadata and checksums, and keeps logs and firmware as Actions artifacts.
-It uses commit-pinned actions and runs on pushes to `xr1710g-custom`.
+[GitHub Actions run 37156965190](https://github.com/SHD-ISAC/XR1710G-Custom/actions/runs/37156965190)
+completed successfully on 2026-10-03 at 23:07 UTC (2026-10-04 at 07:07 China time).
+The compiler toolchain, Linux kernel, wireless drivers, selected packages and
+complete firmware images were built from source. Image metadata checks and
+`sha256sum -c sha256sums` passed. Logs, configuration and firmware were uploaded.
 
-## Local build
+A separate local build using OpenWrt's checksum-verified GCC 14.4.0 musl
+cross-toolchain also passed, including mac80211, MT7996, both firmware images,
+image checksums and inspection of FIT/sysupgrade metadata.
+
+[Download the CI firmware artifact](https://github.com/SHD-ISAC/XR1710G-Custom/actions/runs/37156965190/artifacts/11287730934).
+It contains:
+
+- `openwrt-airoha-an7581-gemtek_xr1710g-ubi-squashfs-sysupgrade.itb`
+- `openwrt-airoha-an7581-gemtek_xr1710g-ubi-initramfs-recovery.itb`
+- `sha256sums`, image profiles, package manifest and build information
+
+This artifact is retained until 2026-10-17. Check the run's commit before
+choosing an artifact. A newer documentation-only commit does not change the
+firmware that was tested.
+
+## Flash compatibility: check before upgrading
+
+The XR1710G DTS and flash layout from device baseline `c82129e` are preserved.
+This does **not** establish compatibility with an older installed firmware.
+The image explicitly declares compatibility version **2.0**. The inherited
+XR1710G device definition warns that the BMT/BBT boundary changed: migration
+from the older layout requires an XR1710G chainloader/U-Boot matching the new
+layout, followed by booting recovery/initramfs and recreating UBI.
+
+Do not bypass an image compatibility rejection with `sysupgrade -F`.
+Deselecting "keep settings" alone does not perform this layout migration.
+Do not flash a W1700K bootloader or infer that this archive includes an XR1710G
+chainloader; it contains the two firmware images listed above.
+
+Read-only checks on the currently running router:
+
+```sh
+ubus call system board
+uci -q get 'system.@system[0].compat_version'
+cat /proc/mtd
+```
+
+An absent compatibility value is treated as 1.0 by OpenWrt's upgrade check.
+The reported value alone is insufficient: confirm the actual flash layout
+and installed bootloader before choosing an upgrade procedure. No router has
+been flashed as part of this repository integration.
+
+## Build and maintain
+
+The pinned feeds and device seed are in `configs/`. On a host with OpenWrt's
+build dependencies installed:
 
 ```sh
 cp configs/xr1710g-feeds.conf feeds.conf
@@ -32,9 +75,16 @@ make download -j8
 make -j$(nproc) V=s
 ```
 
-## Hardware validation still required
+Continue development on `xr1710g-custom`. The `XR1710G firmware` workflow uses
+commit-pinned actions, builds this device on code pushes, checks image outputs,
+and caches host tools and the source-built cross-toolchain for subsequent runs.
+Documentation-only pushes do not rebuild firmware. Upstream multi-target
+workflows only run in the official OpenWrt repository.
 
-Boot, Wi-Fi association/MLO, Ethernet links, reboot recovery, and IPv4/IPv6
-throughput have not been tested on a physical XR1710G. In particular, the
-previous AP-mode IPv6/upload stall must be retested; compilation cannot
-establish that it is fixed.
+## Hardware validation pending
+
+Compilation does not establish that the previous AP-mode IPv6/upload stall is
+fixed. Boot, Wi-Fi association/MLO, Ethernet links, IPv4/IPv6 transfers in both
+directions, AP/bridge behavior, and reboot recovery still need testing on an
+actual XR1710G. Hardware results should record the exact firmware commit and
+network mode; no physical-device test has been performed here.
