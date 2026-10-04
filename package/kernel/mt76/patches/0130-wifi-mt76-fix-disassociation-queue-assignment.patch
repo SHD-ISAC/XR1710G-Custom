@@ -16,16 +16,12 @@ Signed-off-by: Peter Chiu <chui-hao.chiu@mediatek.com>
 Link: https://patch.msgid.link/20260727150434.1778520-11-nbd@nbd.name
 Signed-off-by: Felix Fietkau <nbd@nbd.name>
 ---
- tx.c | 1 +
- 1 file changed, 1 insertion(+)
 
-diff --git a/tx.c b/tx.c
-index dc8407be2891..b03be0eb4712 100644
 --- a/tx.c
 +++ b/tx.c
-@@ -631,6 +631,7 @@ mt76_txq_schedule_pending_wcid(struct mt76_phy *phy, struct mt76_wcid *wcid,
- 		    !ieee80211_is_data_present(hdr->frame_control) &&
- 		    (!ieee80211_is_bufferable_mmpdu(skb) ||
+@@ -695,6 +695,7 @@
+ 		    (!(wcid->tx_info & MT_WCID_TX_INFO_SET) ||
+ 		     !ieee80211_is_bufferable_mmpdu(skb) ||
  		     ieee80211_is_deauth(hdr->frame_control) ||
 +		     ieee80211_is_disassoc(hdr->frame_control) ||
  		     head == &wcid->tx_offchannel))

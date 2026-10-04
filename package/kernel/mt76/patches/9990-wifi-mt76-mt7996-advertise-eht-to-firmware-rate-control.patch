@@ -15,15 +15,10 @@ clients.
 Assisted-by: Codex:gpt-5.5
 Signed-off-by: Jihong Min <hurryman2212@gmail.com>
 ---
- mt7996/mcu.c | 3 +++
- 1 file changed, 3 insertions(+)
 
-diff --git a/mt7996/mcu.c b/mt7996/mcu.c
-index f3426115bba1..25c3d23538a8 100644
 --- a/mt7996/mcu.c
 +++ b/mt7996/mcu.c
-@@ -2549,7 +2549,10 @@ mt7996_mcu_sta_rate_ctrl_tlv(struct sk_buff *skb, struct mt7996_dev *dev,
- 		if (link_sta->he_6ghz_capa.capa)
+@@ -2875,6 +2875,9 @@
  			ra->af = le16_get_bits(link_sta->he_6ghz_capa.capa,
  					       IEEE80211_HE_6GHZ_CAP_MAX_AMPDU_LEN_EXP);
  	}
@@ -33,5 +28,3 @@ index f3426115bba1..25c3d23538a8 100644
  	ra->sta_cap = cpu_to_le32(cap);
  
  	memset(ra->rx_rcpi, INIT_RCPI, sizeof(ra->rx_rcpi));
--- 
-2.43.0

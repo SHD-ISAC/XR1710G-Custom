@@ -1,8 +1,15 @@
 # XR1710G integration and build verification
 
 Official OpenWrt main is merged into YYH's `xr1710g-6.18-integration`
-device port. The tested firmware source is commit
+device port. The previously compiled firmware source is commit
 `f628bdc4dba371d9a0f00d3ba2ac392759e79d99`.
+
+**Hardware test failed:** the owner reported no Wi-Fi and no usable Ethernet
+network after flashing this artifact, including after a reset attempt, and
+has rolled back. Do not use the old artifact as a known-good firmware.
+The [code audit](xr1710g-network-regression.md) identifies a deterministic
+MT7996 teardown deadlock introduced by duplicate backports. The fix requires
+a new build and hardware validation; the exact failing boot was not logged.
 
 - Device baseline: `c82129e7348fda30b9e2f90572e4f1b3c555c7f2`
 - Official main at the integration cutoff: `0d212bc523580e3bd20d18d646987ca488f8d0ee`
@@ -30,8 +37,8 @@ It contains:
 - `sha256sums`, image profiles, package manifest and build information
 
 This artifact is retained until 2026-10-17. Check the run's commit before
-choosing an artifact. A newer documentation-only commit does not change the
-firmware that was tested.
+choosing an artifact. This link is retained for diagnosis of the failed build,
+not as an upgrade recommendation.
 
 ## Flash compatibility: check before upgrading
 
@@ -57,8 +64,7 @@ cat /proc/mtd
 
 An absent compatibility value is treated as 1.0 by OpenWrt's upgrade check.
 The reported value alone is insufficient: confirm the actual flash layout
-and installed bootloader before choosing an upgrade procedure. No router has
-been flashed as part of this repository integration.
+and installed bootloader before choosing an upgrade procedure.
 
 ## Build and maintain
 
@@ -81,10 +87,11 @@ and caches host tools and the source-built cross-toolchain for subsequent runs.
 Documentation-only pushes do not rebuild firmware. Upstream multi-target
 workflows only run in the official OpenWrt repository.
 
-## Hardware validation pending
+## Hardware validation
 
 Compilation does not establish that the previous AP-mode IPv6/upload stall is
 fixed. Boot, Wi-Fi association/MLO, Ethernet links, IPv4/IPv6 transfers in both
 directions, AP/bridge behavior, and reboot recovery still need testing on an
-actual XR1710G. Hardware results should record the exact firmware commit and
-network mode; no physical-device test has been performed here.
+actual XR1710G. The owner's first flash failed as described above. Hardware
+results should record the exact firmware commit and network mode; source
+regression tests and successful builds cannot establish hardware recovery.

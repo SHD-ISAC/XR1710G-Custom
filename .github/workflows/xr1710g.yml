@@ -34,7 +34,7 @@ jobs:
             git libncurses-dev libssl-dev zlib1g-dev python3 python3-dev \
             python3-setuptools pkgconf cmake ninja-build cpio \
             device-tree-compiler xsltproc libelf-dev file wget curl rsync \
-            unzip swig time
+            unzip swig time zstd
           df -h .
 
       - name: Install pinned feeds and select XR1710G
@@ -68,6 +68,11 @@ jobs:
         run: |
           set -o pipefail
           make download -j8 V=s 2>&1 | tee download.log
+
+      - name: Check mt76 patch application and teardown regressions
+        run: |
+          set -o pipefail
+          bash scripts/tests/check-xr1710g-mt76.sh 2>&1 | tee mt76-patch-check.log
 
       - name: Build firmware from source
         run: |
@@ -114,6 +119,7 @@ jobs:
             build.log
             download.log
             build.config
+            mt76-patch-check.log
             logs/
           retention-days: 14
 
