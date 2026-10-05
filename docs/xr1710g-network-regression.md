@@ -50,8 +50,11 @@ power controls and other board customizations remain in the stack.
 
 ## Validation
 
-The `mt7996e.ko` module extracted from the old CI recovery image confirms that
-the faulty code was shipped. Its `mt7996_remove_interface` symbol starts at
+The `mt7996e.ko` modules extracted from the old CI sysupgrade squashfs and
+recovery initramfs are byte-for-byte identical (SHA256
+`b0d31a132c40f607fd51138fdc4f7c2ccd41973ff1c53d0c131ff63ee9dcd879`).
+They confirm that the faulty code was shipped in the normal upgrade image,
+not just a source reconstruction. Its `mt7996_remove_interface` symbol starts at
 `.text+0x950c`; `readelf -rW` shows consecutive `mutex_lock` call relocations
 at `.text+0x953c` and `.text+0x9544`, followed by the duplicated unlock calls.
 
@@ -73,9 +76,44 @@ failure and successful allocation cases pass. Against the corrected source,
 all five cases pass, and all remaining patches apply without fuzz. These tests
 cover the identified control-flow errors, not kernel scheduling or hardware.
 
+### Corrected build and image inspection
+
+[Run 37267098667](https://github.com/SHD-ISAC/XR1710G-Custom/actions/runs/37267098667)
+at `6485d6a8edf9076ff7de65330682d19ec12f40e5` completed successfully on
+2026-10-05 at 06:00 UTC. Its `mt76-patch-check.log` records the matching source
+archive SHA256, complete patch application without fuzz, and five passing
+regression cases. The full target build and image output checks also passed.
+The first attempted CI run stopped before compilation because the new helper
+used hyphens instead of dots in the source archive date; commit `6485d6a8ed`
+corrected that filename without bypassing the check.
+
+The [new firmware artifact](https://github.com/SHD-ISAC/XR1710G-Custom/actions/runs/37267098667/artifacts/11328112301)
+and [build logs](https://github.com/SHD-ISAC/XR1710G-Custom/actions/runs/37267098667/artifacts/11327982857)
+were downloaded and their artifact digests verified. All seven checksums in
+the image directory and every image payload's FIT CRC32/SHA1 passed.
+The image manifest has 184 packages and `kmod-mt7996e` release `r5`.
+
+Both new images contain the same corrected `mt7996e.ko`, SHA256
+`e0d7a8339b1462a78703ae4d451e871d11381e328715ddab107a87f2c95fd13b`.
+In `mt7996_remove_interface`, the first lock at `.text+0x953c` is followed by
+the corresponding unlock at `.text+0x95bc`; the old second consecutive lock
+is absent. Later locking at `.text+0x96a4` belongs to the inlined PHY-stop path,
+not another consecutive acquisition of the already-held mutex. The function
+size falls from 540 to 524 bytes. This confirms the fix reached both the
+normal sysupgrade squashfs and the recovery initramfs.
+
+The new sysupgrade SHA256 is
+`dd0682294ff9969511342e0892b20e896e6db605cd235800a6ef74506716badc`.
+The embedded DTB matches the earlier build byte-for-byte; network binaries,
+startup links and device firmware are present in the sysupgrade filesystem.
+
+### Remaining hardware verification
+
 The earlier firmware archive also contains the required Ethernet/Wi-Fi
 packages, DHCP/DNS and LuCI. Its sysupgrade FIT is 15,238,068 bytes
 (approximately 14.53 MiB), with a kernel, XR1710G DTB and squashfs rootfs.
+The extracted squashfs includes `netifd`, `dnsmasq`, `uhttpd`, the MT7996/NPU
+firmware, and enabled network, DHCP, Wi-Fi and web-service startup links.
 The small compressed size alone does not indicate an incomplete firmware.
 The XR1710G DTS and port definitions are unchanged from the YYH baseline.
 
@@ -83,4 +121,5 @@ The patched Airoha Ethernet/NPU, PCIe and pinctrl source was reconstructed
 against Linux 6.18.44 (YYH baseline) and 6.18.54 (integration). That comparison
 did not reveal a lost XR1710G board adaptation. It does not exclude additional
 runtime issues. Ethernet links, DHCP, Wi-Fi, resets and AP-mode IPv6 still need
-physical-device verification after the corrected build succeeds.
+physical-device verification with the corrected candidate. No successful
+hardware test of this candidate is claimed.
