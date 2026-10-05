@@ -50,6 +50,11 @@ power controls and other board customizations remain in the stack.
 
 ## Validation
 
+The `mt7996e.ko` module extracted from the old CI recovery image confirms that
+the faulty code was shipped. Its `mt7996_remove_interface` symbol starts at
+`.text+0x950c`; `readelf -rW` shows consecutive `mutex_lock` call relocations
+at `.text+0x953c` and `.text+0x9544`, followed by the duplicated unlock calls.
+
 `scripts/tests/check-xr1710g-mt76.sh` verifies the downloaded source archive's
 configured SHA256, applies the entire mt76 patch stack with `--fuzz=0`, then
 runs `xr1710g-mt76-regression.py`. CI runs this before building firmware and

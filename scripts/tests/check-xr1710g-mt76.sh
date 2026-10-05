@@ -11,7 +11,8 @@ if [ "$#" -eq 1 ]; then
 else
     source_date=$(sed -n 's/^PKG_SOURCE_DATE:=//p' package/kernel/mt76/Makefile)
     source_commit=$(sed -n 's/^PKG_SOURCE_VERSION:=//p' package/kernel/mt76/Makefile)
-    source_name="mt76-${source_date}~${source_commit:0:8}"
+    # Match include/download.mk: source dates use dots in PKG_VERSION.
+    source_name="mt76-${source_date//-/.}~${source_commit:0:8}"
     source_hash=$(sed -n 's/^PKG_MIRROR_HASH:=//p' package/kernel/mt76/Makefile)
     archive="$repo_root/dl/$source_name.tar.zst"
     printf '%s  %s\n' "$source_hash" "$archive" | sha256sum --check
