@@ -1,9 +1,15 @@
 # XR1710G integration and build verification
 
 Official OpenWrt main is merged into YYH's `xr1710g-6.18-integration`
-device port. The current code-audited firmware candidate was built from
+device port. The preceding driver-corrected firmware candidate was built from
 `6485d6a8edf9076ff7de65330682d19ec12f40e5`. Its build, targeted regression
 tests and image inspection passed. Physical-device validation is pending.
+
+A second audit found that this candidate's plain `dnsmasq` can fail to start
+with retained DNSSEC settings from YYH's `dnsmasq-full`. The seed now restores
+the full variant and CI tests the built ARM program under QEMU. A replacement
+firmware build is pending; the artifact below does not contain this new fix.
+See the [second image audit](xr1710g-network-regression.md#second-image-audit-retained-dnsdhcp-settings).
 
 **The earlier hardware test failed:** after flashing the old build at
 `f628bdc4dba371d9a0f00d3ba2ac392759e79d99`, the owner reported no Wi-Fi and

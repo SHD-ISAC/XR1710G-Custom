@@ -107,6 +107,40 @@ The new sysupgrade SHA256 is
 The embedded DTB matches the earlier build byte-for-byte; network binaries,
 startup links and device firmware are present in the sysupgrade filesystem.
 
+### Second image audit: retained DNS/DHCP settings
+
+The actual YYH release asset from
+[`xr1710g_260831`](https://github.com/YYH2913/openwrt/releases/tag/xr1710g_260831)
+was downloaded and checked against its published SHA256
+`32499de4f30d1de6e72bb9f1c7310361e80dc1b60f3aaf4220032f178568eccd`.
+Its embedded XR1710G DTB and every regular file under `/lib/firmware/` are
+byte-for-byte identical to the candidate built at `6485d6a8ed`. The XR1710G
+LAN/WAN definitions, network init script, default DHCP/firewall configuration
+and preinit scripts also have identical contents. No physical-network driver
+is missing from the candidate. Core network executables have their required
+shared libraries. This does not establish successful driver initialization.
+
+The package comparison exposed another real compatibility defect: YYH ships
+`dnsmasq-full`, while the minimal device seed selected plain `dnsmasq`.
+The actual init script exits before starting dnsmasq if retained UCI settings
+request `dnssec=1` and the binary lacks DNSSEC. Such a configuration can lose
+both DNS and DHCP. The owner's DNSSEC setting is unknown, and the factory
+default does not enable DNSSEC, so this is not proof of the reset-boot failure.
+
+Both actual AArch64 binaries were run with QEMU user-mode emulation, using
+`--version` and `--test` only (no network service was started). Both report
+version 2.93. The same DNSSEC configuration passes with YYH's binary and exits
+1 with the candidate's binary because the option is unsupported. YYH also
+has DHCPv6, nftset, conntrack and authoritative-DNS capabilities omitted from
+the plain variant.
+
+The build seed now explicitly selects `dnsmasq-full` and its YYH-equivalent
+features, leaving ipset disabled as in that release. CI rejects the plain
+variant and runs `xr1710g-dnsmasq-regression.py` against the built ARM binary
+and its libraries. It checks a basic configuration and one containing DNSSEC,
+DHCPv6, nftset and conntrack, and verifies the packaged trust anchors and
+feature flags. This userspace test cannot validate hardware or live DHCP.
+
 ### Remaining hardware verification
 
 The earlier firmware archive also contains the required Ethernet/Wi-Fi

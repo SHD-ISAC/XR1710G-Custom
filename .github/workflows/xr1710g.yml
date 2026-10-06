@@ -34,7 +34,7 @@ jobs:
             git libncurses-dev libssl-dev zlib1g-dev python3 python3-dev \
             python3-setuptools pkgconf cmake ninja-build cpio \
             device-tree-compiler xsltproc libelf-dev file wget curl rsync \
-            unzip swig time zstd
+            unzip swig time zstd qemu-user
           df -h .
 
       - name: Install pinned feeds and select XR1710G
@@ -48,6 +48,12 @@ jobs:
           grep -qx 'CONFIG_IPV6=y' .config
           grep -qx 'CONFIG_PACKAGE_luci-app-airoha-npu=y' .config
           grep -qx 'CONFIG_PACKAGE_luci-app-w1700k-fancontrol=y' .config
+          grep -qx 'CONFIG_PACKAGE_dnsmasq-full=y' .config
+          grep -qx 'CONFIG_PACKAGE_dnsmasq_full_dnssec=y' .config
+          if grep -qx 'CONFIG_PACKAGE_dnsmasq=y' .config; then
+            echo 'Plain dnsmasq would break retained DNSSEC settings' >&2
+            exit 1
+          fi
           ./scripts/diffconfig.sh > build.config
 
       - name: Restore build tools
@@ -96,6 +102,14 @@ jobs:
           cd bin/targets/airoha/an7581
           sha256sum -c sha256sums
 
+      - name: Check built DNS and DHCP configuration compatibility
+        run: |
+          set -o pipefail
+          roots=(build_dir/target-*/root-airoha)
+          test "${#roots[@]}" -eq 1 && test -d "${roots[0]}"
+          python3 scripts/tests/xr1710g-dnsmasq-regression.py "${roots[0]}" \
+            2>&1 | tee dnsmasq-regression.log
+
       - name: Cache build tools
         if: always() && !cancelled() && steps.build-tools-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
@@ -120,6 +134,7 @@ jobs:
             download.log
             build.config
             mt76-patch-check.log
+            dnsmasq-regression.log
             logs/
           retention-days: 14
 
