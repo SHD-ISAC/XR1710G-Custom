@@ -194,6 +194,85 @@ Recovery is 13,762,560 bytes, SHA256
 `2889080c740d3e79cb5dd396ae07fb67cafd04601e442e023ae18b3c8fd96972`.
 The embedded revision is `r36905-b03fae0c16`.
 
+### Third audit: module loading, configuration migration and upgrade planning
+
+The follow-up audit on 2026-10-07 checked branch head
+`fc429ad44de13fd516baf0697d1369539d6b452b`, whose changes after the tested
+`b03fae0c16` firmware source are documentation only. It inspected the same
+downloaded firmware, rather than assuming the source package selections
+establish what is present in the image. No additional firmware change was
+required by these checks.
+
+All 81 external kernel modules have the same vermagic,
+`6.18.54 SMP mod_unload aarch64`. Their declared dependencies resolve to
+packaged modules or built-in drivers. The built-in list includes Airoha
+Ethernet/NPU/PCS, both MediaTek PCIe controllers, the Airoha PCIe PHY,
+AN7581 pinctrl, SNFI, MT7530 DSA/MMIO, UBI, squashfs, UBIFS and overlay.
+The physical network drivers were not omitted by the smaller package set.
+
+There is one obsolete autoload entry, `nf_flow_table_hw`, in
+`/etc/modules.d/nf-flow`; it is also present in the actual YYH image.
+It is not a declared dependency of a packaged module. The images have the
+same `kmodloader` binary, and its pinned
+[source](https://github.com/openwrt/ubox/blob/6f78fa496bf36c55864a41e353df7d13f04b1077/kmodloader.c)
+explicitly skips a missing module in `main_loader()`. This entry therefore
+does not stop loading the following drivers; it was not treated as another
+boot failure or used as a reason to change generic package definitions.
+
+Offline configuration execution used the actual extracted ARM BusyBox,
+UCI and jshn programs under QEMU. Absolute shell paths were relocated into
+a disposable filesystem, with private UCI config/change directories; the
+configuration logic was otherwise retained. No network service was started.
+The following seven cases passed, including repeated migration to check
+idempotence:
+
+| Fixture | Verified result |
+| --- | --- |
+| Fresh network generation | LAN bridge ports `eth2 lan2 lan3`, address `192.168.1.1/24`; WAN `eth1` DHCP and WAN6 `eth1` DHCPv6 |
+| Current router configuration | Existing bridge, management address and IPv6 settings preserved |
+| Legacy `lan1` / `ae_wan` aliases | Migrated to `eth2` / `eth1`; management address, IPv6 assignment and `@wan` reference preserved |
+| Legacy VLAN aliases | `lan1.20:t` and `ae_wan.35` become `eth2.20:t` and `eth1.35` |
+| Legacy `eth0.8` LAN bridge | Replaced by the expected XR1710G LAN ports while keeping the management address |
+| AP configuration without WAN | Existing configuration preserved |
+| Other board ID | XR1710G migration makes no changes |
+
+All 11 packaged native ucode modules (`fs`, `uci`, `ubus`, `uloop`, `rtnl`,
+`nl80211`, `digest`, `log`, `html`, `lucihttp`, `luci.core`) also load with
+the actual ARM interpreter and libraries, without calling their network APIs.
+This supplements the earlier syntax checks, which alone do not establish
+that native modules and their libraries can be loaded.
+
+The extracted `fwtool` successfully reads the image footer. Its metadata
+version, compatibility version **2.0**, compatibility message and both
+supported-device lists match the actual YYH release exactly. The `fwtool`,
+`fitblk`, `mount_root`, `factoryreset` and `kmodloader` program bytes also
+match YYH. This comparison does not establish the installed bootloader or
+flash layout on the physical router.
+
+Fake sysfs fixtures exercised `export_fitblk_bootdev()` and selected
+`CI_METHOD=ubi`, `CI_UBIPART=ubi`, `CI_KERNPART=fit`. With storage operations
+replaced by logging stubs, the normal already-attached-UBI preparation path
+removes and recreates only `fit` and `rootfs_data`, leaving factory and
+environment volumes outside the removal plan. With optional provisioning
+enabled and a mock maximum of 128 volumes, it assigns provisioning ID 127.
+These tests do not execute `ubiattach`, `ubiformat`, volume writes or any
+flash operation, and do not validate recovery from a damaged UBI device.
+
+The build-log review found no failed patch hunks, undefined symbols or fatal
+compile/link errors. All 83 modpost warnings concern missing
+`MODULE_DESCRIPTION()` metadata, not missing dependencies. Ignored host
+cleanup/documentation checks were distinguished from target build failures.
+There were no additional compiler warnings in the selected physical network
+driver sources.
+
+The green status LED is not a network health check. In the actual image,
+`S95done` calls `set_state done`, and `/etc/diag.sh` turns the running LED on
+without checking DHCP, Ethernet or Wi-Fi. Likewise, the reset-button handler
+only invokes `factoryreset` after a long release when `/overlay` is mounted.
+The earlier steady LED and reset attempt do not establish that these network
+services worked or that the overlay was successfully reset. This is a limit
+on interpreting the earlier report, not a diagnosis of that unlogged boot.
+
 ### Remaining hardware verification
 
 The earlier firmware archive also contains the required Ethernet/Wi-Fi

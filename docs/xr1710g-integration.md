@@ -62,6 +62,12 @@ Network services, MT7996/NPU firmware and startup links are present. The
 embedded XR1710G DTB and all 11 regular hardware-firmware files match the actual
 YYH August 31 release byte-for-byte.
 
+The [follow-up boot and configuration audit](xr1710g-network-regression.md#third-audit-module-loading-configuration-migration-and-upgrade-planning)
+also checked all 81 kernel-module dependencies, seven offline network
+configuration cases, native ucode module loading and mocked UBI volume
+planning. It found no additional firmware defect requiring a source change.
+These checks do not replace physical-device validation.
+
 | Image suffix | SHA256 |
 | --- | --- |
 | `squashfs-sysupgrade.itb` | `e6e4229591189a249ef170ac6cea2e63c9f36daf4f8978f5f3ae2c11c10a8e88` |
