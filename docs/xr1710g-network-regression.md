@@ -76,7 +76,7 @@ failure and successful allocation cases pass. Against the corrected source,
 all five cases pass, and all remaining patches apply without fuzz. These tests
 cover the identified control-flow errors, not kernel scheduling or hardware.
 
-### Corrected build and image inspection
+### Driver-corrected build at 6485d6a8ed and image inspection
 
 [Run 37267098667](https://github.com/SHD-ISAC/XR1710G-Custom/actions/runs/37267098667)
 at `6485d6a8edf9076ff7de65330682d19ec12f40e5` completed successfully on
@@ -140,6 +140,59 @@ variant and runs `xr1710g-dnsmasq-regression.py` against the built ARM binary
 and its libraries. It checks a basic configuration and one containing DNSSEC,
 DHCPv6, nftset and conntrack, and verifies the packaged trust anchors and
 feature flags. This userspace test cannot validate hardware or live DHCP.
+
+Additional checks on the preceding candidate's extracted filesystem and
+source, completed during this second audit:
+
+- All 20 `.uc` files under `/lib/netifd`, `/lib/wifi`, `/usr/share/hostap`
+  and `/usr/share/ucode/wifi` compile with the packaged AArch64 ucode
+  interpreter under QEMU. Files containing exports are compiled as modules.
+  The ucode-based `wireless/mac80211.sh` entry point also compiles, and the
+  packaged BusyBox ash parser accepts all 61 checked shell scripts for boot,
+  default configuration, board setup and upgrade.
+- The transitive shared-library dependencies of the core network, init and
+  web-service programs resolve to 24 files in the image; none are missing.
+- The XR1710G-specific upgrade path is unchanged. The `nand.sh` difference
+  assigns an optional provisioning volume the last UBI ID; it does not change
+  the XR1710G FIT upgrade path.
+- The recorded kernel patch warnings were reproduced on nine selected Linux
+  6.18.54 source files (72 applicable patches), and the wireless warnings on
+  two files from the SHA256-verified backports 7.2 archive (six applicable
+  patches). The before/after code of 11 kernel and two mac80211 patches using
+  fuzz was reviewed. This did not reveal another duplicate teardown lock or
+  a hunk applied to the wrong function. Unlike the mt76 check, this is a
+  focused manual review, not a claim that the entire kernel stack is fuzz-free.
+
+### Replacement build and actual image verification
+
+The replacement build for these DNS/DHCP changes is
+[run 37524409837](https://github.com/SHD-ISAC/XR1710G-Custom/actions/runs/37524409837),
+source `b03fae0c161829b54ea83cb173992d3c9fff205c`. It completed successfully
+on 2026-10-06 at 21:27 UTC (2026-10-07 05:27 China time). The configuration
+guard, all five mt76 source regressions, complete target build, image checks
+and the new ARM binary configuration tests passed.
+
+The [firmware artifact](https://github.com/SHD-ISAC/XR1710G-Custom/actions/runs/37524409837/artifacts/11445510943)
+and [logs](https://github.com/SHD-ISAC/XR1710G-Custom/actions/runs/37524409837/artifacts/11445585633)
+were downloaded and their published ZIP digests verified. All seven image
+directory checksums and every FIT payload CRC32/SHA1 passed. The actual new
+sysupgrade contains `dnsmasq-full` 2.93-r3; plain `dnsmasq` is absent from its
+189-package manifest. Its extracted binary also passes both configurations
+under QEMU, independently of the CI test on the build root filesystem.
+The dnsmasq binary and trust anchors match between sysupgrade and recovery.
+
+Both images retain the previously verified corrected MT7996 module SHA256
+`e0d7a8339b1462a78703ae4d451e871d11381e328715ddab107a87f2c95fd13b`.
+The old consecutive lock pair is absent. The new sysupgrade DTB and all 11
+hardware-firmware files still match the actual YYH release byte-for-byte.
+The selected core programs, including their executable symlinks, and the
+transitive library dependencies resolve to 33 files with nothing missing.
+
+The sysupgrade is 15,827,892 bytes (15.09 MiB), SHA256
+`e6e4229591189a249ef170ac6cea2e63c9f36daf4f8978f5f3ae2c11c10a8e88`.
+Recovery is 13,762,560 bytes, SHA256
+`2889080c740d3e79cb5dd396ae07fb67cafd04601e442e023ae18b3c8fd96972`.
+The embedded revision is `r36905-b03fae0c16`.
 
 ### Remaining hardware verification
 
