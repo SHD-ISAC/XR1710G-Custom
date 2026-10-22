@@ -27,6 +27,7 @@ acer,predator-w6x-ubootmod|\
 asus,rt-ax59u-ubi|\
 asus,zenwifi-bt8-ubootmod|\
 cmcc,a10-ubootmod|\
+comfast,cf-wa933-ubi|\
 comfast,cf-wr632ax-ubi|\
 comfast,cf-wr632ax-ubootmod|\
 creatlentem,clt-r30b1-ubi|\
@@ -87,6 +88,7 @@ nradio,c8-668gl)
 	;;
 asiarf,ap7986-003|\
 cetron,ct3003|\
+comfast,cf-wa933|\
 comfast,cf-wr632ax|\
 edgecore,eap111|\
 netgear,wax220|\
@@ -139,10 +141,6 @@ comfast,cf-e393ax|\
 iptime,ax3000m)
 	ubootenv_add_uci_config "/dev/mtd1" "0x0" "0x20000" "0x80000"
 	;;
-comfast,cf-wa933|\
-comfast,cf-wa933-128m)
-	ubootenv_add_uci_config "/dev/mtd1" "0x0" "0x20000" "0x20000"
-	;;
 dlink,aquila-pro-ai-e30-a1|\
 dlink,aquila-pro-ai-m30-a1|\
 dlink,aquila-pro-ai-m60-a1)
@@ -175,7 +173,8 @@ smartrg,sdg-8712|\
 smartrg,sdg-8732|\
 smartrg,sdg-8733|\
 smartrg,sdg-8733a|\
-smartrg,sdg-8734)
+smartrg,sdg-8734|\
+smartrg,sdg-9000)
 	ubootenv_add_mmc "u-boot-env" "mmcblk0" "0x0" "0x8000" "0x8000"
 	;;
 teltonika,rutc50|\

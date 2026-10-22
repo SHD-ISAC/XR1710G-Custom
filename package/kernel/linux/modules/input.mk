@@ -10,7 +10,7 @@ INPUT_MODULES_MENU:=Input modules
 define KernelPackage/hid
   SUBMENU:=$(INPUT_MODULES_MENU)
   TITLE:=HID Devices
-  DEPENDS:=+kmod-input-core +kmod-input-evdev
+  DEPENDS:=+kmod-input-core +PACKAGE_input-support:kmod-input-evdev
   KCONFIG:=CONFIG_HID CONFIG_HID_SUPPORT=y CONFIG_HIDRAW=y CONFIG_HID_BATTERY_STRENGTH=y
   FILES:=$(LINUX_DIR)/drivers/hid/hid.ko
   AUTOLOAD:=$(call AutoLoad,61,hid)
@@ -262,6 +262,25 @@ endef
 $(eval $(call KernelPackage,input-touchscreen-edt-ft5x06))
 
 
+define KernelPackage/input-touchscreen-hynitron-cst816x
+  SUBMENU:=$(INPUT_MODULES_MENU)
+  TITLE:=Hynitron CST816X touchscreen
+  DEPENDS:=+kmod-i2c-core +kmod-input-core
+  KCONFIG:= \
+	CONFIG_INPUT_TOUCHSCREEN=y \
+	CONFIG_TOUCHSCREEN_HYNITRON_CST816X
+  FILES:=$(LINUX_DIR)/drivers/input/touchscreen/hynitron-cst816x.ko
+  AUTOLOAD:=$(call AutoProbe,hynitron-cst816x)
+endef
+
+define KernelPackage/input-touchscreen-hynitron-cst816x/description
+  Kernel module for Hynitron CST816X touchscreen controller
+  used for 240×240 1.28-inch Round LCD Display Module.
+endef
+
+$(eval $(call KernelPackage,input-touchscreen-hynitron-cst816x))
+
+
 define KernelPackage/keyboard-imx
   SUBMENU:=$(INPUT_MODULES_MENU)
   TITLE:=IMX keypad support
@@ -373,7 +392,7 @@ define KernelPackage/rc-core
 	CONFIG_RC_CORE
   FILES:=$(LINUX_DIR)/drivers/media/rc/rc-core.ko
   AUTOLOAD:=$(call AutoProbe,rc-core)
-  DEPENDS:=@!LINUX_6_12 +kmod-input-core
+  DEPENDS:=+kmod-input-core
 endef
 
 define KernelPackage/rc-core/description

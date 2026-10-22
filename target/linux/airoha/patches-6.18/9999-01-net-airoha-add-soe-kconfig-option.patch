@@ -15,7 +15,7 @@ index 38dcc76..b548b5a 100644
 +++ b/drivers/net/ethernet/airoha/Kconfig
 @@ -32,4 +32,17 @@ config NET_AIROHA_FLOW_STATS
  	help
- 	  Enable Aiorha flowtable statistic counters.
+ 	  Enable Airoha flowtable statistic counters.
  
 +config NET_AIROHA_SOE
 +	bool "Airoha SOE ESP offload support"

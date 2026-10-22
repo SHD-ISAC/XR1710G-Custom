@@ -5,7 +5,17 @@
 
 #include <linux/types.h>
 
+/* Port Mirroring */
+#define RTL838X_MIR_CTRL			(0x5D00)
+#define RTL838X_MIR_DPM_CTRL			(0x5D20)
+#define RTL838X_MIR_SPM_CTRL			(0x5D10)
+
+#define RTL839X_MIR_CTRL			(0x2500)
+#define RTL839X_MIR_DPM_CTRL			(0x2530)
+#define RTL839X_MIR_SPM_CTRL			(0x2510)
+
 struct dsa_switch;
+struct otto_dsa_priv;
 struct dsa_mall_mirror_tc_entry;
 struct netlink_ext_ack;
 
@@ -35,5 +45,7 @@ int rtldsa_port_mirror_add(struct dsa_switch *ds, int port,
 			   bool ingress, struct netlink_ext_ack *extack);
 void rtldsa_port_mirror_del(struct dsa_switch *ds, int port,
 			    struct dsa_mall_mirror_tc_entry *mirror);
+int rtldsa_mirror_group_get(struct otto_dsa_priv *priv, int port);
+void rtldsa_mirror_group_put(struct otto_dsa_priv *priv, int group);
 
 #endif /* _OTTO_MIRROR_H */

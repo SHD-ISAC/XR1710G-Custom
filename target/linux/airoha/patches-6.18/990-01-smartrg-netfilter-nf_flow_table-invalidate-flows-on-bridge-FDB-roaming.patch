@@ -56,7 +56,7 @@ Signed-off-by: Chad Monroe <chad@monroe.io>
  		      enum flow_offload_tuple_dir dir)
 @@ -295,6 +309,12 @@ int flow_offload_add(struct nf_flowtable
  
- 	nf_ct_offload_timeout(flow->ct);
+ 	nf_ct_refresh(flow->ct, NF_CT_DAY);
  
 +#if IS_ENABLED(CONFIG_NET_SWITCHDEV)
 +	if (flow->tuplehash[0].tuple.xmit_type == FLOW_OFFLOAD_XMIT_DIRECT ||
@@ -243,8 +243,8 @@ Signed-off-by: Chad Monroe <chad@monroe.io>
 +	destroy_workqueue(flow_mac_cleanup_wq);
 +#endif
  	unregister_netdevice_notifier(&flow_offload_netdev_notifier);
+ 	rcu_barrier();
  	nf_flow_table_offload_exit();
- 	unregister_pernet_subsys(&nf_flow_table_net_ops);
 --- a/include/net/netfilter/nf_flow_table.h
 +++ b/include/net/netfilter/nf_flow_table.h
 @@ -84,6 +84,9 @@ struct nf_flowtable {

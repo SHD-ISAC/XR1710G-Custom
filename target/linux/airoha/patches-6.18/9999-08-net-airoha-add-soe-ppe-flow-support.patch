@@ -717,17 +717,15 @@ Signed-off-by: Jihong Min <hurryman2212@gmail.com>
  	e = kzalloc(sizeof(*e), GFP_KERNEL);
  	if (!e)
  		return -ENOMEM;
-@@ -1486,17 +2073,55 @@ static int airoha_ppe_flow_offload_cmd(s
- static int airoha_ppe_flush_sram_entries(struct airoha_ppe *ppe,
- 					 struct airoha_npu *npu)
+@@ -1485,22 +2072,63 @@ static int airoha_ppe_flow_offload_cmd(s
+ 
+ static int airoha_ppe_flush_sram_entries(struct airoha_ppe *ppe)
  {
 +	u32 ppe_num_entries = airoha_ppe_get_total_num_entries(ppe);
  	u32 sram_num_entries = airoha_ppe_get_total_sram_num_entries(ppe);
  	struct airoha_foe_entry *hwe = ppe->foe;
--	int i;
+ 	int i;
  
--	for (i = 0; i < PPE_SRAM_NUM_ENTRIES; i++)
--		memset(&hwe[i], 0, sizeof(*hwe));
 +	memset(hwe, 0, ppe_num_entries * sizeof(*hwe));
 +	if (ppe->foe_stats) {
 +		u32 ppe_num_stats_entries =
@@ -737,9 +735,17 @@ Signed-off-by: Jihong Min <hurryman2212@gmail.com>
 +		       ppe_num_stats_entries * sizeof(*ppe->foe_stats));
 +	}
 +	dma_wmb();
++
+ 	for (i = 0; i < sram_num_entries; i++) {
+ 		int err;
  
- 	return npu->ops.ppe_flush_sram_entries(npu, ppe->foe_dma,
- 					       sram_num_entries);
+-		memset(&hwe[i], 0, sizeof(*hwe));
+ 		err = airoha_ppe_foe_commit_sram_entry(ppe, i);
+ 		if (err)
+ 			return err;
+ 	}
+ 
+ 	return 0;
  }
  
 +static int airoha_ppe_set_bind_rate(const char *val,
@@ -777,8 +783,8 @@ Signed-off-by: Jihong Min <hurryman2212@gmail.com>
  {
  	struct airoha_npu *npu = airoha_npu_get(eth->dev);
 @@ -1740,6 +2365,12 @@ int airoha_ppe_init(struct airoha_eth *e
- 	if (!ppe->foe_check_time)
- 		return -ENOMEM;
+ 	if (err)
+ 		return err;
  
 +	ppe->soe_meta = devm_kzalloc(eth->dev,
 +				     ppe_num_entries * sizeof(*ppe->soe_meta),

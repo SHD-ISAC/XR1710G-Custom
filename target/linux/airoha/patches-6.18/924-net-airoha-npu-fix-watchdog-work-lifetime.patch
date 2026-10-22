@@ -3,10 +3,9 @@ From: Yanghan Ye <yyh94306@gmail.com>
 Date: Fri, 7 Aug 2026 11:23:21 +0800
 Subject: [PATCH] net: airoha: npu: fix watchdog work lifetime
 
-Register a cancellation action before each watchdog IRQ so devres
-unwinding frees the IRQ before synchronizing its work item. This closes
-probe-failure and remove races where an IRQ could queue work after the
-manual remove callback had canceled it.
+The base driver now uses devm_work_autocancel before requesting each
+watchdog IRQ, so it already handles the work lifetime and cancellation
+ordering. Do not add a second initialization or cancellation action.
 
 Expose a recovery wait helper and retain the last recovery status so
 consumers that encounter -EAGAIN can wait for the active recovery instead
@@ -47,50 +46,6 @@ Signed-off-by: Yanghan Ye <yyh94306@gmail.com>
  static void airoha_npu_wdt_work(struct work_struct *work)
  {
  	struct airoha_npu_core *core;
-@@ -370,6 +383,13 @@ static void airoha_npu_wdt_work(struct w
- 		dev_err(npu->dev, "failed to restart NPU core %d\n", c);
- }
- 
-+static void airoha_npu_cancel_wdt_work(void *data)
-+{
-+	struct airoha_npu_core *core = data;
-+
-+	cancel_work_sync(&core->wdt_work);
-+}
-+
- static irqreturn_t airoha_npu_wdt_handler(int irq, void *core_instance)
- {
- 	struct airoha_npu_core *core = core_instance;
-@@ -803,6 +823,10 @@ static int airoha_npu_probe(struct platf
- 		spin_lock_init(&core->lock);
- 		core->npu = npu;
- 		INIT_WORK(&core->wdt_work, airoha_npu_wdt_work);
-+		err = devm_add_action_or_reset(dev, airoha_npu_cancel_wdt_work,
-+					       core);
-+		if (err)
-+			return err;
- 
- 		irq = platform_get_irq(pdev, i + 1);
- 		if (irq < 0)
-@@ -858,18 +882,8 @@ static int airoha_npu_probe(struct platf
- 	return 0;
- }
- 
--static void airoha_npu_remove(struct platform_device *pdev)
--{
--	struct airoha_npu *npu = platform_get_drvdata(pdev);
--	int i;
--
--	for (i = 0; i < ARRAY_SIZE(npu->cores); i++)
--		cancel_work_sync(&npu->cores[i].wdt_work);
--}
--
- static struct platform_driver airoha_npu_driver = {
- 	.probe = airoha_npu_probe,
--	.remove = airoha_npu_remove,
- 	.driver = {
- 		.name = "airoha-npu",
- 		.of_match_table = of_airoha_npu_match,
 --- a/include/linux/soc/airoha/airoha_offload.h
 +++ b/include/linux/soc/airoha/airoha_offload.h
 @@ -171,6 +171,7 @@ struct airoha_npu {

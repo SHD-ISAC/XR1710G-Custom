@@ -1,14 +1,18 @@
 # XR1710G integration and build verification
 
 Official OpenWrt main is merged into YYH's `xr1710g-6.18-integration`
-device port. The current firmware candidate was built from
-`b03fae0c161829b54ea83cb173992d3c9fff205c`. Its full build, targeted regression
-tests and actual image inspection passed. Physical-device validation is pending.
+device port. The [2026-10-23 source update](xr1710g-update-2026-10-23.md)
+integrates official main `a25fb079b1463cd5d7d69c6d9a1c28d873291ebb`.
+The updated source passes the local patch and targeted regression checks
+described there. Its full firmware build and new-image inspection are pending;
+do not treat the earlier build results below as verification of this update.
+Physical-device validation is also pending.
 
 A second audit found that the preceding candidate's plain `dnsmasq` can fail
-to start with retained DNSSEC settings from YYH's `dnsmasq-full`. The current
-candidate restores the full variant and its YYH-equivalent feature set.
-The actual ARM program extracted from the new image passes the configuration
+to start with retained DNSSEC settings from YYH's `dnsmasq-full`. The October 6
+candidate restored the full variant and its YYH-equivalent feature set; that
+selection is preserved in the new update. The actual ARM program extracted
+from the October 6 image passed the configuration
 regression tests under QEMU; no DNS/DHCP service was started by these tests.
 See the [second image audit](xr1710g-network-regression.md#second-image-audit-retained-dnsdhcp-settings).
 
@@ -21,12 +25,15 @@ MT7996 teardown deadlock introduced by duplicate backports. The corrected
 driver is verified in the new images; the exact failing boot was not logged.
 
 - Device baseline: `c82129e7348fda30b9e2f90572e4f1b3c555c7f2`
-- Official main at the integration cutoff: `0d212bc523580e3bd20d18d646987ca488f8d0ee`
-- Kernel: Linux 6.18.54
-- Wireless: mac80211 backports 7.2; mt76 2026.09.01~be5ce791, package release 5
+- Official main at the current source cutoff: `a25fb079b1463cd5d7d69c6d9a1c28d873291ebb`
+- Kernel: Linux 6.18.55
+- Wireless: mac80211 backports 7.2; mt76 2026.10.08~467ae2e3, package release 6
 - Target: `airoha/an7581`, `gemtek_xr1710g-ubi`
 
-## Current candidate and verified build
+## Historical verified build (October 6; artifact expired)
+
+This section applies only to source `b03fae0c161829b54ea83cb173992d3c9fff205c`,
+not the October 23 update. Its 14-day artifacts expired on October 20.
 
 [GitHub Actions run 37524409837](https://github.com/SHD-ISAC/XR1710G-Custom/actions/runs/37524409837)
 completed successfully on 2026-10-06 at 21:27 UTC (2026-10-07 05:27 China time).
@@ -48,8 +55,7 @@ images. The sysupgrade binary passes basic DNS/DHCP and
 DNSSEC/DHCPv6/nftset/conntrack configuration tests under QEMU. The checked core
 programs and all their required libraries resolve to 33 files in the image.
 
-[Download the current CI firmware artifact](https://github.com/SHD-ISAC/XR1710G-Custom/actions/runs/37524409837/artifacts/11445510943).
-It contains:
+The former CI firmware artifact is no longer a current download. It contained:
 
 - `openwrt-airoha-an7581-gemtek_xr1710g-ubi-squashfs-sysupgrade.itb`
 - `openwrt-airoha-an7581-gemtek_xr1710g-ubi-initramfs-recovery.itb`
@@ -73,9 +79,9 @@ These checks do not replace physical-device validation.
 | `squashfs-sysupgrade.itb` | `e6e4229591189a249ef170ac6cea2e63c9f36daf4f8978f5f3ae2c11c10a8e88` |
 | `initramfs-recovery.itb` | `2889080c740d3e79cb5dd396ae07fb67cafd04601e442e023ae18b3c8fd96972` |
 
-This artifact is retained until 2026-10-20 at 21:27 UTC. Check the source
-commit when choosing an artifact. This is a candidate for physical validation,
-not a hardware-verified release.
+This artifact's retention ended on 2026-10-20 at 21:27 UTC. Check the source
+commit and build result when choosing a new artifact. Neither a historical
+build nor a successful new build establishes physical-device validation.
 
 ## Earlier failed hardware test
 
@@ -83,8 +89,8 @@ not a hardware-verified release.
 at `f628bdc4dba371d9a0f00d3ba2ac392759e79d99` compiled successfully on
 2026-10-03, but the owner's subsequent hardware test failed as described above.
 That artifact and the older local compilation establish only that the old
-source compiled; they did not catch the runtime deadlock. Use the current
-candidate link above when reviewing the correction.
+source compiled; they did not catch the runtime deadlock. Use the source-specific
+audit and build records when reviewing the correction.
 
 ## Flash compatibility: check before upgrading
 

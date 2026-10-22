@@ -1,0 +1,77 @@
+Subject: wifi: mt76: disable RX NAPI once during teardown
+
+Upstream d39a5b53249c quiesces MT7996 RX NAPI before MCU/DMA cleanup.
+The local registered-NAPI cleanup disables the same instances before
+page-pool deletion. napi_disable() is not idempotent: running both paths
+would block. Share a final-teardown bitmap, retaining both the early
+quiesce and the registered-NAPI/page-pool deletion order. Reset its marker
+when registering a queue or finishing common cleanup.
+
+diff --git a/dma.c b/dma.c
+index bf00fdd..bb8573d 100644
+--- a/dma.c
++++ b/dma.c
+@@ -1188,6 +1188,7 @@ mt76_dma_rx_queue_init(struct mt76_dev *dev, enum mt76_rxq_id qid,
+ 
+ 	netif_napi_add(dev->napi_dev, &dev->napi[qid], poll);
+ 	set_bit(qid, &dev->napi_registered);
++	clear_bit(qid, &dev->napi_teardown_disabled);
+ 	mt76_dma_rx_fill_buf(dev, q, false);
+ 	napi_enable(&dev->napi[qid]);
+ }
+@@ -1278,7 +1279,8 @@ void mt76_dma_cleanup(struct mt76_dev *dev)
+ 		struct mt76_queue *q = &dev->q_rx[i];
+ 		bool napi_registered = test_bit(i, &dev->napi_registered);
+ 
+-		if (napi_registered)
++		if (napi_registered &&
++		    !test_and_set_bit(i, &dev->napi_teardown_disabled))
+ 			napi_disable(&dev->napi[i]);
+ 		if (q->ndesc)
+ 			mt76_dma_rx_cleanup(dev, q);
+@@ -1291,6 +1293,7 @@ void mt76_dma_cleanup(struct mt76_dev *dev)
+ 		if (napi_registered) {
+ 			netif_napi_del(&dev->napi[i]);
+ 			clear_bit(i, &dev->napi_registered);
++			clear_bit(i, &dev->napi_teardown_disabled);
+ 		}
+ 	}
+ 
+diff --git a/mt76.h b/mt76.h
+index 340912e..986685c 100644
+--- a/mt76.h
++++ b/mt76.h
+@@ -974,6 +974,7 @@ struct mt76_dev {
+ 	spinlock_t rx_lock;
+ 	struct napi_struct napi[__MT_RXQ_MAX];
+ 	unsigned long napi_registered;
++	unsigned long napi_teardown_disabled;
+ 	struct sk_buff_head rx_skb[__MT_RXQ_MAX];
+ 	struct tasklet_struct irq_tasklet;
+ 
+diff --git a/mt7996/init.c b/mt7996/init.c
+index d783998..a68824d 100644
+--- a/mt7996/init.c
++++ b/mt7996/init.c
+@@ -1856,7 +1856,8 @@ void mt7996_unregister_device(struct mt7996_dev *dev)
+ 	mt76_npu_rx_queues_deinit(&dev->mt76);
+ 	mt7996_wed_rro_free(dev);
+ 	for (i = 0; i < ARRAY_SIZE(dev->mt76.napi); i++) {
+-		if (dev->mt76.napi[i].dev)
++		if (dev->mt76.napi[i].dev &&
++		    !test_and_set_bit(i, &dev->mt76.napi_teardown_disabled))
+ 			napi_disable(&dev->mt76.napi[i]);
+ 	}
+ 	mt7996_mcu_exit(dev);
+diff --git a/npu.c b/npu.c
+index c16205f..1c5fa73 100644
+--- a/npu.c
++++ b/npu.c
+@@ -323,6 +323,7 @@ int mt76_npu_rx_queue_init(struct mt76_dev *dev, struct mt76_queue *q)
+ 
+ 	netif_napi_add(dev->napi_dev, &dev->napi[qid], mt76_npu_rx_poll);
+ 	set_bit(qid, &dev->napi_registered);
++	clear_bit(qid, &dev->napi_teardown_disabled);
+ 	mt76_npu_fill_rx_queue(dev, q);
+ 	napi_enable(&dev->napi[qid]);
+ 

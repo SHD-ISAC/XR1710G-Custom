@@ -35,4 +35,4 @@ Signed-off-by: Christian Marangi <ansuelsmth@gmail.com>
 +	device_set_node(&netdev->dev, of_fwnode_handle(of_node_get(np)));
  	dev = netdev_priv(netdev);
  	u64_stats_init(&dev->stats.syncp);
- 	dev->port = port;
+ 	for (i = 0; i < ARRAY_SIZE(dev->txq_lock); i++)

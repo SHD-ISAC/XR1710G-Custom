@@ -543,8 +543,8 @@ Signed-off-by: Joshua Klinesmith <joshuaklinesmith@gmail.com>
  
 --- a/mt7996/mt7996.h
 +++ b/mt7996/mt7996.h
-@@ -293,7 +293,6 @@
- 	struct mt7996_sta *sta;
+@@ -302,7 +302,6 @@
+ 	bool connected;
  
  	struct list_head rc_list;
 -	u32 airtime_ac[8];

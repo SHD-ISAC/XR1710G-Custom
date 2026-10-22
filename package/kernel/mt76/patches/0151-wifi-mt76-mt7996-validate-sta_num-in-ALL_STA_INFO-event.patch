@@ -1,105 +1,31 @@
-From ccf79a23412bc73b8e6a6532618c00f7a58be0f0 Mon Sep 17 00:00:00 2001
-From: Koh Tom Han <kohtomhan@gmail.com>
-Date: Mon, 3 Aug 2026 00:05:40 +0800
-Subject: [PATCH] wifi: mt76: mt7996: validate sta_num in ALL_STA_INFO event
+Subject: wifi: mt76: validate the local station-statistics extensions
 
-mt7996_mcu_rx_all_sta_info_event() uses res->sta_num, a __le16 taken
-straight from the firmware event, as the bound of a loop that indexes the
-rate[], adm_stat[] and msdu_cnt[] flexible-array members of the event.
-The count is never clamped and skb->len is never consulted, so an event
-declaring more stations than it actually carries makes the driver read
-past the end of the received skb.
+Upstream 56c8b4a4 now validates the common ALL_STA_INFO event header and
+station-array lengths. Extend its element-size dispatch for the local
+airtime event, and reject truncated local PER_STA_INFO replies before
+reading sta_num. Do not reapply the superseded common validation hunk.
 
-The strides are 20, 36 and 12 bytes respectively, so the worst case
-(tag UNI_ALL_STA_TXRX_ADM_STAT, sta_num 0xFFFF) walks roughly 2.25 MB
-beyond the buffer, in softirq context. Out-of-bounds wlan_idx values are
-range-checked by mt76_wcid_ptr(), but the break statements inside the
-switch exit only the switch, so the loop keeps running; indices that do
-fall in range accumulate out-of-bounds data into wcid->stats, which
-mt7996_sta_statistics() exports to userspace when WED offload is active.
-
-The return value of the preceding skb_pull() is also discarded.
-skb_pull() returns NULL without modifying the skb when the requested
-length exceeds skb->len, so for an event shorter than
-sizeof(struct mt7996_mcu_rxd) the pull silently does nothing and res
-ends up aliasing the RXD header, taking sta_num from arbitrary
-descriptor bytes.
-
-Check the pull, require the fixed part of the event to be present, pick
-the element stride for the tag being processed, and reject any sta_num
-that cannot fit in the received payload. The subtraction cannot
-underflow because of the preceding skb->len check.
-
-For comparison, mt7996_mcu_wed_rro_event() in the same file already
-bounds its iteration with "while (skb->len >= sizeof(*e))".
-
-Found by code review and confirmed under KASAN with a KUnit test that
-feeds the handler a synthetic ALL_STA_INFO event carrying four adm_stat
-entries but declaring 65535, using a kzalloc-ed struct mt7996_dev (the
-handler only dereferences dev via mt76_wcid_ptr()). No MT7996 hardware
-was involved:
-
-  BUG: KASAN: slab-out-of-bounds in mt7996_mcu_rx_all_sta_info_event+0x19a/0x3a0
-  Read of size 2 at addr ffff8880012422a0 by task kunit_try_catch/28
-   mt7996_mcu_rx_all_sta_info_event+0x19a/0x3a0
-   mt7996_all_sta_info_oob_test+0x24b/0x360
-  The buggy address belongs to the object at ffff888001242000
-   which belongs to the cache skbuff_small_head of size 640
-  The buggy address is located 32 bytes to the right of
-   allocated 640-byte region [ffff888001242000, ffff888001242280)
-
-The same test passes cleanly with this patch applied.
-
-Fixes: adde3eed4a75 ("wifi: mt76: mt7996: Add mcu commands for getting sta tx statistic")
-Cc: stable@vger.kernel.org
-Signed-off-by: Koh Tom Han <kohtomhan@gmail.com>
-Message-ID: <20260802160540.1072-1-kohtomhan@gmail.com>
----
- mt7996/mcu.c | 30 +++++++++++++++++++++++++++---
- 1 file changed, 27 insertions(+), 3 deletions(-)
-
-diff --git a/mt7996/mcu.c b/mt7996/mcu.c
-index 176d71e..1999521 100644
 --- a/mt7996/mcu.c
 +++ b/mt7996/mcu.c
-@@ -648,13 +648,37 @@ static void
- mt7996_mcu_rx_all_sta_info_event(struct mt7996_dev *dev, struct sk_buff *skb)
- {
- 	struct mt7996_mcu_all_sta_info_event *res;
--	u16 i;
-+	size_t elem_size;
-+	u16 i, sta_num;
- 
--	skb_pull(skb, sizeof(struct mt7996_mcu_rxd));
-+	if (!skb_pull(skb, sizeof(struct mt7996_mcu_rxd)))
-+		return;
-+
-+	if (skb->len < sizeof(*res))
-+		return;
- 
- 	res = (struct mt7996_mcu_all_sta_info_event *)skb->data;
- 
--	for (i = 0; i < le16_to_cpu(res->sta_num); i++) {
-+	switch (le16_to_cpu(res->tag)) {
-+	case UNI_ALL_STA_TXRX_RATE:
-+		elem_size = sizeof(res->rate[0]);
+@@ -690,6 +690,9 @@ mt7996_mcu_rx_all_sta_info_event(struct mt7996_dev *dev, struct sk_buff *skb)
+ 	case UNI_ALL_STA_TXRX_MSDU_COUNT:
+ 		elem_size = sizeof(res->msdu_cnt[0]);
+ 		break;
++	case UNI_ALL_STA_TXRX_AIR_TIME:
++		elem_size = sizeof(res->airtime[0]);
 +		break;
-+	case UNI_ALL_STA_TXRX_ADM_STAT:
-+		elem_size = sizeof(res->adm_stat[0]);
-+		break;
-+	case UNI_ALL_STA_TXRX_MSDU_COUNT:
-+		elem_size = sizeof(res->msdu_cnt[0]);
-+		break;
-+	default:
-+		return;
-+	}
+ 	default:
+ 		return;
+ 	}
+@@ -5985,6 +5988,11 @@ int mt7996_mcu_get_per_sta_info(struct mt7996_phy *phy, u16 tag)
+ 		if (ret)
+ 			return ret;
+ 
++		if (skb->len < sizeof(*res)) {
++			dev_kfree_skb(skb);
++			return -EINVAL;
++		}
 +
-+	/* the firmware-provided station count must fit in the received event */
-+	sta_num = le16_to_cpu(res->sta_num);
-+	if (sta_num > (skb->len - sizeof(*res)) / elem_size)
-+		return;
-+
-+	for (i = 0; i < sta_num; i++) {
- 		u8 ac;
- 		u16 wlan_idx;
- 		struct mt76_wcid *wcid;
+ 		res = (struct mt7996_mcu_per_sta_info_event *)skb->data;
+ 
+ 		resp_sta_num = le16_to_cpu(res->sta_num);

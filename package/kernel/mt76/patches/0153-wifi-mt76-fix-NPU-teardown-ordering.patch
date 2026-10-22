@@ -64,16 +64,19 @@ diff --git a/mt7996/init.c b/mt7996/init.c
 index a7e0610..4c8522a 100644
 --- a/mt7996/init.c
 +++ b/mt7996/init.c
-@@ -1831,6 +1831,8 @@ error:
+@@ -1828,17 +1828,21 @@
  
  void mt7996_unregister_device(struct mt7996_dev *dev)
  {
-+	int err;
-+
+-	int i;
++	int i, err;
+ 
  	cancel_work_sync(&dev->dump_work);
  	cancel_work_sync(&dev->wed_rro.work);
  	cancel_work_sync(&dev->reset_work);
-@@ -1840,6 +1842,10 @@ void mt7996_unregister_device(struct mt7996_dev *dev)
+ 	cancel_work_sync(&dev->rc_work);
+ 	mt7996_unregister_phy(mt7996_phy3(dev));
+ 	mt7996_unregister_phy(mt7996_phy2(dev));
  	mt7996_unregister_thermal(&dev->phy);
  	mt7996_coredump_unregister(dev);
  	mt76_unregister_device(&dev->mt76);
@@ -82,8 +85,8 @@ index a7e0610..4c8522a 100644
 +		dev_warn(dev->mt76.dev, "failed to stop NPU: %d\n", err);
 +	mt76_npu_rx_queues_deinit(&dev->mt76);
  	mt7996_wed_rro_free(dev);
- 	mt7996_mcu_exit(dev);
- 	mt7996_tx_token_put(dev);
+ 	for (i = 0; i < ARRAY_SIZE(dev->mt76.napi); i++) {
+ 		if (dev->mt76.napi[i].dev)
 diff --git a/mt7996/mmio.c b/mt7996/mmio.c
 index 168a338..e02724a 100644
 --- a/mt7996/mmio.c

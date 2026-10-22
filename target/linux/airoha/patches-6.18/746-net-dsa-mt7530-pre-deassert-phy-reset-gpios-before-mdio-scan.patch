@@ -5,8 +5,8 @@ Subject: [PATCH] net: dsa: mt7530: deassert PHY reset GPIOs before MDIO bus scan
 ---
 --- a/drivers/net/dsa/mt7530.c
 +++ b/drivers/net/dsa/mt7530.c
-@@ -2272,6 +2272,38 @@ static void mt7530_free_irq(struct mt7530_priv *priv)
- 	mt7530_free_irq_common(priv);
+@@ -2350,6 +2350,38 @@ mt7530_free_mdio_irq(struct mt7530_priv *priv)
+ 	}
  }
 
 +static void
@@ -44,8 +44,8 @@ Subject: [PATCH] net: dsa: mt7530: deassert PHY reset GPIOs before MDIO bus scan
  static int
  mt7530_setup_mdio(struct mt7530_priv *priv)
  {
-@@ -2306,6 +2338,9 @@ mt7530_setup_mdio(struct mt7530_priv *priv)
- 	if (priv->irq && !mnp)
+@@ -2386,6 +2418,9 @@ mt7530_setup_mdio(struct mt7530_priv *priv)
+ 	if (priv->irq_domain && !mnp)
  		mt7530_setup_mdio_irq(priv);
 
 +	if (mnp)

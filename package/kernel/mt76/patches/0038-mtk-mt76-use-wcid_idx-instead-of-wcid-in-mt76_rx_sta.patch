@@ -137,13 +137,14 @@ index 70aea0ee0..2d65ae289 100644
  	if (!wcid || !wcid->sta) {
  		struct ieee80211_hdr *hdr = mt76_skb_get_hdr(skb);
  
-@@ -1440,16 +1445,21 @@ mt76_check_sta(struct mt76_dev *dev, struct sk_buff *skb)
+@@ -1440,17 +1445,22 @@ mt76_check_sta(struct mt76_dev *dev, struct sk_buff *skb)
  	struct ieee80211_hdr *hdr = mt76_skb_get_hdr(skb);
  	struct ieee80211_sta *sta;
  	struct ieee80211_hw *hw;
 -	struct mt76_wcid *wcid = status->wcid;
 +	struct mt76_wcid *wcid = __mt76_wcid_ptr(dev, status->wcid_idx);
  	u8 tidno = status->qos_ctl & IEEE80211_QOS_CTL_TID_MASK;
+ 	int signal;
  	bool ps;
  
  	hw = mt76_phy_hw(dev, status->phy_idx);

@@ -137,23 +137,6 @@ Signed-off-by: Yanghan Ye <yyh94306@gmail.com>
  	npu->ops.ppe_init = airoha_npu_ppe_init;
  	npu->ops.ppe_deinit = airoha_npu_ppe_deinit;
  	npu->ops.ppe_init_stats = airoha_npu_ppe_stats_setup;
-@@ -744,6 +802,7 @@ static int airoha_npu_probe(struct platf
- 
- 		spin_lock_init(&core->lock);
- 		core->npu = npu;
-+		INIT_WORK(&core->wdt_work, airoha_npu_wdt_work);
- 
- 		irq = platform_get_irq(pdev, i + 1);
- 		if (irq < 0)
-@@ -753,8 +812,6 @@ static int airoha_npu_probe(struct platf
- 				       IRQF_SHARED, "airoha-npu-wdt", core);
- 		if (err)
- 			return err;
--
--		INIT_WORK(&core->wdt_work, airoha_npu_wdt_work);
- 	}
- 
- 	/* wlan IRQ lines */
 --- a/include/linux/soc/airoha/airoha_offload.h
 +++ b/include/linux/soc/airoha/airoha_offload.h
 @@ -6,6 +6,7 @@

@@ -22,3 +22,4 @@ fi
 PATCH='patch --fuzz=0' ./scripts/patch-kernel.sh \
     "$check_tmp/source" "$repo_root/package/kernel/mt76/patches"
 python3 scripts/tests/xr1710g-mt76-regression.py "$check_tmp/source"
+python3 scripts/tests/xr1710g-mt76-extended-regression.py "$check_tmp/source"
