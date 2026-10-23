@@ -75,6 +75,11 @@ jobs:
           set -o pipefail
           make download -j8 V=s 2>&1 | tee download.log
 
+      - name: Check complete mac80211 patch stack and management-frame regressions
+        run: |
+          set -o pipefail
+          python3 scripts/tests/check-xr1710g-mac80211.py 2>&1 | tee mac80211-patch-check.log
+
       - name: Check mt76 patch application and teardown regressions
         run: |
           set -o pipefail
@@ -133,6 +138,7 @@ jobs:
             build.log
             download.log
             build.config
+            mac80211-patch-check.log
             mt76-patch-check.log
             dnsmasq-regression.log
             logs/

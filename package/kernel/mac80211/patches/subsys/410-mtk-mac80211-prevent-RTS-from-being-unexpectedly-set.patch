@@ -26,8 +26,8 @@ index fc3b18a5..d711a963 100644
 --- a/net/wireless/nl80211.c
 +++ b/net/wireless/nl80211.c
 @@ -3878,7 +3878,7 @@ static int nl80211_set_wiphy_radio(struct genl_info *info,
+ 				   int radio_idx)
  {
- 	const struct wiphy_radio *radio;
  	u32 rts_threshold = 0, old_rts, changed = 0;
 -	int result;
 +	int result = 0;
@@ -54,8 +54,8 @@ index fc3b18a5..d711a963 100644
 +			rdev->wiphy.radio_cfg[radio_idx].rts_threshold = old_rts;
 +	}
  
- 	if (info->attrs[NL80211_ATTR_WIPHY_ANTENNA_TX] &&
- 	    info->attrs[NL80211_ATTR_WIPHY_ANTENNA_RX]) {
+ 	return 0;
+ }
 -- 
 2.45.2
 

@@ -8,6 +8,12 @@ described there. Its full firmware build and new-image inspection are pending;
 do not treat the earlier build results below as verification of this update.
 Physical-device validation is also pending.
 
+The first October 23 build failed on a superseded mac80211 patch. The
+[follow-up correction](xr1710g-update-2026-10-23.md#follow-up-mac80211-preparation-failure-and-correction)
+retains upstream's management-frame link selection and adds a full mac80211
+patch-stack preflight plus ten behavioral regression cases. The corrected
+firmware still requires a successful full build.
+
 A second audit found that the preceding candidate's plain `dnsmasq` can fail
 to start with retained DNSSEC settings from YYH's `dnsmasq-full`. The October 6
 candidate restored the full variant and its YYH-equivalent feature set; that
@@ -28,6 +34,7 @@ driver is verified in the new images; the exact failing boot was not logged.
 - Official main at the current source cutoff: `a25fb079b1463cd5d7d69c6d9a1c28d873291ebb`
 - Kernel: Linux 6.18.55
 - Wireless: mac80211 backports 7.2; mt76 2026.10.08~467ae2e3, package release 6
+- mac80211 package release: 10
 - Target: `airoha/an7581`, `gemtek_xr1710g-ubi`
 
 ## Historical verified build (October 6; artifact expired)
@@ -131,6 +138,7 @@ cp configs/xr1710g-feeds.conf feeds.conf
 cp configs/xr1710g.config .config
 make defconfig
 make download -j8
+python3 scripts/tests/check-xr1710g-mac80211.py
 bash scripts/tests/check-xr1710g-mt76.sh
 make -j$(nproc) V=s
 python3 scripts/tests/xr1710g-dnsmasq-regression.py build_dir/target-*/root-airoha
