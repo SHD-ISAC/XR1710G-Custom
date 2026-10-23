@@ -3,16 +3,17 @@
 Official OpenWrt main is merged into YYH's `xr1710g-6.18-integration`
 device port. The [2026-10-23 source update](xr1710g-update-2026-10-23.md)
 integrates official main `a25fb079b1463cd5d7d69c6d9a1c28d873291ebb`.
-The updated source passes the local patch and targeted regression checks
-described there. Its full firmware build and new-image inspection are pending;
-do not treat the earlier build results below as verification of this update.
-Physical-device validation is also pending.
+The corrected firmware at `f8a9c6aeb38a5b5a1f9d8a4f0aedb00179cc75fc`
+passes the full source build, patch/regression checks, image validation and
+ARM DNS/DHCP configuration tests. The downloaded images were independently
+checked as described there. Physical-device validation remains pending.
 
 The first October 23 build failed on a superseded mac80211 patch. The
 [follow-up correction](xr1710g-update-2026-10-23.md#follow-up-mac80211-preparation-failure-and-correction)
 retains upstream's management-frame link selection and adds a full mac80211
 patch-stack preflight plus ten behavioral regression cases. The corrected
-firmware still requires a successful full build.
+[full build succeeded](https://github.com/SHD-ISAC/XR1710G-Custom/actions/runs/39949393948)
+on October 23 at 20:32 China time.
 
 A second audit found that the preceding candidate's plain `dnsmasq` can fail
 to start with retained DNSSEC settings from YYH's `dnsmasq-full`. The October 6
@@ -27,8 +28,9 @@ See the [second image audit](xr1710g-network-regression.md#second-image-audit-re
 no usable Ethernet, including after a reset attempt, and has rolled back.
 Do not use that old artifact as a known-good firmware.
 The [code audit](xr1710g-network-regression.md) identifies a deterministic
-MT7996 teardown deadlock introduced by duplicate backports. The corrected
-driver is verified in the new images; the exact failing boot was not logged.
+MT7996 teardown deadlock introduced by duplicate backports. That audit checked
+the corrected October 6 images; the current source also passes its teardown
+regression cases. The exact failing boot was not logged.
 
 - Device baseline: `c82129e7348fda30b9e2f90572e4f1b3c555c7f2`
 - Official main at the current source cutoff: `a25fb079b1463cd5d7d69c6d9a1c28d873291ebb`
@@ -36,6 +38,23 @@ driver is verified in the new images; the exact failing boot was not logged.
 - Wireless: mac80211 backports 7.2; mt76 2026.10.08~467ae2e3, package release 6
 - mac80211 package release: 10
 - Target: `airoha/an7581`, `gemtek_xr1710g-ubi`
+
+## Current verified build (October 23)
+
+[Download firmware built from `f8a9c6aeb3`](https://github.com/SHD-ISAC/XR1710G-Custom/actions/runs/39949393948/artifacts/12501268270).
+The sysupgrade image is 15,918,004 bytes (approximately 15.18 MiB); the
+recovery image is 13,893,632 bytes (13.25 MiB). The manifest has 189 packages,
+including `dnsmasq-full` 2.93-r5, mac80211 r10 and mt76 r6.
+
+All 212 mac80211 patches and 30 mt76 patches apply with zero fuzz; all 27
+host-side behavioral cases pass. Complete firmware compilation, image
+checksums and the built ARM DNS/DHCP configuration checks pass. Independent
+inspection confirms both FITs contain Linux 6.18.55 and the same XR1710G DTB,
+and the sysupgrade metadata retains compatibility version 2.0.
+
+See the [build and image record](xr1710g-update-2026-10-23.md#build-and-image-verification)
+for checksums and scope. The artifact expires on November 6 at 20:32 China
+time. This is a candidate for physical testing, not a hardware-verified release.
 
 ## Historical verified build (October 6; artifact expired)
 
