@@ -64,5 +64,5 @@ Assisted-by: Codex:GPT-5.6-sol
  		nft_dev_path_info(&stack, &info, ha, &ft->data);
 +	}
  
- 	if (!info.indev || !nft_flowtable_find_dev(info.indev, ft))
- 		return -ENOENT;
+ 	if (info.outdev)
+ 		route->tuple[dir].out.ifindex = info.outdev->ifindex;

@@ -107,6 +107,14 @@ jobs:
           cd bin/targets/airoha/an7581
           sha256sum -c sha256sums
 
+      - name: Check prepared bridge egress and hardware Wi-Fi path regressions
+        run: |
+          set -o pipefail
+          kernels=(build_dir/target-*/linux-airoha_an7581/linux-6.18.*)
+          test "${#kernels[@]}" -eq 1 && test -d "${kernels[0]}"
+          python3 scripts/tests/xr1710g-forward-path-regression.py "${kernels[0]}" \
+            2>&1 | tee forward-path-regression.log
+
       - name: Check built DNS and DHCP configuration compatibility
         run: |
           set -o pipefail
@@ -141,6 +149,7 @@ jobs:
             mac80211-patch-check.log
             mt76-patch-check.log
             dnsmasq-regression.log
+            forward-path-regression.log
             logs/
           retention-days: 14
 

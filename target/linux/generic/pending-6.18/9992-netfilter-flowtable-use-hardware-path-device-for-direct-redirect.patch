@@ -34,7 +34,7 @@ diff --git a/net/netfilter/nf_flow_table_path.c b/net/netfilter/nf_flow_table_pa
  #include <net/inet_dscp.h>
  #include <net/netfilter/nf_tables.h>
 @@ -117,6 +118,41 @@
- 	return __dev_fill_forward_path(ctx, ha, stack);
+ 	return dev_fill_forward_path(ctx, stack);
  }
  
 +static void nft_flow_keys_init(const struct nf_conn *ct,
@@ -75,8 +75,8 @@ diff --git a/net/netfilter/nf_flow_table_path.c b/net/netfilter/nf_flow_table_pa
  static void nft_br_vlan_dev_fill_forward_path(const struct nft_pktinfo *pkt,
  					      struct net_device_path_ctx *ctx)
  {
-@@ -191,12 +227,17 @@
- 		case DEV_PATH_ETHERNET:
+@@ -192,13 +228,18 @@
+ 		case DEV_PATH_IEEE80211:
  		case DEV_PATH_DSA:
  		case DEV_PATH_VLAN:
 +		case DEV_PATH_LAG:
@@ -84,7 +84,8 @@ diff --git a/net/netfilter/nf_flow_table_path.c b/net/netfilter/nf_flow_table_pa
  			if (is_zero_ether_addr(info->h_source))
  				memcpy(info->h_source, path->dev->dev_addr, ETH_ALEN);
  
- 			if (path->type == DEV_PATH_ETHERNET)
+ 			if (path->type == DEV_PATH_ETHERNET ||
+ 			    path->type == DEV_PATH_IEEE80211)
  				break;
 +			if (path->type == DEV_PATH_LAG) {
 +				info->outdev = path->dev;
@@ -94,7 +95,7 @@ diff --git a/net/netfilter/nf_flow_table_path.c b/net/netfilter/nf_flow_table_pa
  				i = stack->num_paths;
  				break;
 @@ -288,12 +329,15 @@
- 		.dev	= dst->dev,
+ 		.ieee80211 = true,
  	};
  	struct nft_forward_info info = {};
 +	struct flow_keys flow;

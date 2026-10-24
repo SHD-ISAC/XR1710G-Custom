@@ -94,8 +94,8 @@ Signed-off-by: Yanghan Ye <yyh94306@gmail.com>
  				     struct dst_entry *dst_cache,
  				     enum ip_conntrack_dir dir)
 @@ -379,7 +395,8 @@
- 		memcpy(route->tuple[dir].out.h_source, info.h_source, ETH_ALEN);
- 		memcpy(route->tuple[dir].out.h_dest, info.h_dest, ETH_ALEN);
+ 		route->tuple[dir].out.bridge_vlan = info.bridge_vlan;
+ 		route->tuple[dir].out.port_vlans = info.port_vlans;
  		route->tuple[dir].out.hw_ifindex = info.hw_outdev->ifindex;
 -		route->tuple[dir].xmit_type = info.xmit_type;
 +		if (route->tuple[dir].xmit_type == FLOW_OFFLOAD_XMIT_NEIGH)

@@ -1,8 +1,11 @@
 # XR1710G integration and build verification
 
 Official OpenWrt main is merged into YYH's `xr1710g-6.18-integration`
-device port. The [2026-10-23 source update](xr1710g-update-2026-10-23.md)
-integrates official main `a25fb079b1463cd5d7d69c6d9a1c28d873291ebb`.
+device port. The [2026-10-25 source update](xr1710g-update-2026-10-25.md)
+integrates official main `b5bc4becb424b4d89f48e372675811821aa155bd`.
+The new candidate's full build and image inspection are pending.
+The preceding [October 23 update](xr1710g-update-2026-10-23.md) remains the
+latest verified build until those checks finish.
 The corrected firmware at `f8a9c6aeb38a5b5a1f9d8a4f0aedb00179cc75fc`
 passes the full source build, patch/regression checks, image validation and
 ARM DNS/DHCP configuration tests. The downloaded images were independently
@@ -33,10 +36,10 @@ the corrected October 6 images; the current source also passes its teardown
 regression cases. The exact failing boot was not logged.
 
 - Device baseline: `c82129e7348fda30b9e2f90572e4f1b3c555c7f2`
-- Official main at the current source cutoff: `a25fb079b1463cd5d7d69c6d9a1c28d873291ebb`
+- Official main at the current source cutoff: `b5bc4becb424b4d89f48e372675811821aa155bd`
 - Kernel: Linux 6.18.55
 - Wireless: mac80211 backports 7.2; mt76 2026.10.08~467ae2e3, package release 6
-- mac80211 package release: 10
+- mac80211 package release: 11
 - Target: `airoha/an7581`, `gemtek_xr1710g-ubi`
 
 ## Current verified build (October 23)
