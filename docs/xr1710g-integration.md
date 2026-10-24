@@ -3,10 +3,7 @@
 Official OpenWrt main is merged into YYH's `xr1710g-6.18-integration`
 device port. The [2026-10-25 source update](xr1710g-update-2026-10-25.md)
 integrates official main `b5bc4becb424b4d89f48e372675811821aa155bd`.
-The new candidate's full build and image inspection are pending.
-The preceding [October 23 update](xr1710g-update-2026-10-23.md) remains the
-latest verified build until those checks finish.
-The corrected firmware at `f8a9c6aeb38a5b5a1f9d8a4f0aedb00179cc75fc`
+The firmware at `052f7f400102039df5d6610482fb2600b0a84e4b`
 passes the full source build, patch/regression checks, image validation and
 ARM DNS/DHCP configuration tests. The downloaded images were independently
 checked as described there. Physical-device validation remains pending.
@@ -42,22 +39,29 @@ regression cases. The exact failing boot was not logged.
 - mac80211 package release: 11
 - Target: `airoha/an7581`, `gemtek_xr1710g-ubi`
 
-## Current verified build (October 23)
+## Current verified build (October 25, China time)
 
-[Download firmware built from `f8a9c6aeb3`](https://github.com/SHD-ISAC/XR1710G-Custom/actions/runs/39949393948/artifacts/12501268270).
-The sysupgrade image is 15,918,004 bytes (approximately 15.18 MiB); the
-recovery image is 13,893,632 bytes (13.25 MiB). The manifest has 189 packages,
-including `dnsmasq-full` 2.93-r5, mac80211 r10 and mt76 r6.
+[Download firmware built from `052f7f4001`](https://github.com/SHD-ISAC/XR1710G-Custom/actions/runs/40120782387/artifacts/12572887218).
+It reports `r37776-052f7f4001`. The sysupgrade image is 15,778,740 bytes
+(approximately 15.05 MiB); recovery is 13,762,560 bytes (13.125 MiB). The
+manifest has 188 packages, including `dnsmasq-full` 2.93-r6, mac80211 r11 and
+mt76 r6. The only removed package is upstream's redundant `kmod-nf-log6`
+wrapper; IPv6 logging remains in the shared `kmod-nf-log` module.
 
-All 212 mac80211 patches and 30 mt76 patches apply with zero fuzz; all 27
+All 213 mac80211 patches and 30 mt76 patches apply with zero fuzz; all 34
 host-side behavioral cases pass. Complete firmware compilation, image
 checksums and the built ARM DNS/DHCP configuration checks pass. Independent
 inspection confirms both FITs contain Linux 6.18.55 and the same XR1710G DTB,
-and the sysupgrade metadata retains compatibility version 2.0.
+and the sysupgrade metadata retains compatibility version 2.0. The DTB is
+identical to the preceding verified build.
 
-See the [build and image record](xr1710g-update-2026-10-23.md#build-and-image-verification)
-for checksums and scope. The artifact expires on November 6 at 20:32 China
+See the [build and image record](xr1710g-update-2026-10-25.md#full-build-and-independent-image-checks)
+for checksums and scope. The artifact expires on November 8 at 03:38 China
 time. This is a candidate for physical testing, not a hardware-verified release.
+
+The preceding [October 23 build](xr1710g-update-2026-10-23.md#build-and-image-verification)
+also passed its full build and image checks. Its artifacts expire on November 6
+at 20:32 China time; use the October 25 artifact for this source update.
 
 ## Historical verified build (October 6; artifact expired)
 
