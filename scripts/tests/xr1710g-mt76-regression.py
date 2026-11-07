@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Exercise real patched mt7996 functions with host-side hardware stubs.
 
-This checks teardown locking and MLD allocation failure handling, not device
-boot or radio operation. The C function bodies come from the prepared source.
+Check teardown locking, MLD allocation failure and station ROC cleanup.
+The C function bodies come from the prepared source.
 """
 import argparse
 import os
@@ -38,6 +38,7 @@ typedef uint16_t u16;
 typedef uint32_t u32;
 #define IEEE80211_MLD_MAX_NUM_LINKS 16
 #define MT7996_MAX_RADIOS 3
+enum { NL80211_IFTYPE_STATION, NL80211_IFTYPE_AP };
 #define BIT(n) (1UL << (n))
 #define BIT_ULL(n) (1ULL << (n))
 #define for_each_set_bit(i, mask, count) \
@@ -49,17 +50,23 @@ struct mt7996_dev {
     struct mt7996_phy *radio_phy[MT7996_MAX_RADIOS];
     uint64_t mld_idx_mask, mld_remap_idx_mask;
 };
+struct ieee80211_vif;
+struct mt76_vif_link { bool offchannel; };
+struct mt76_phy {
+    struct mt76_vif_link *roc_link;
+    struct ieee80211_vif *roc_vif;
+};
 struct mt7996_vif {
-    struct { unsigned long valid_links; } mt76;
+    struct { unsigned long valid_links; struct mt76_phy *roc_phy; } mt76;
     int mld_group_idx, mld_remap_idx;
 };
 struct mt7996_vif_link { struct { struct { int phy_idx; } wcid; } msta_link; };
 struct ieee80211_hw { struct mt7996_dev *dev; };
-struct ieee80211_vif { void *drv_priv; };
+struct ieee80211_vif { void *drv_priv; u16 valid_links; int type; };
 struct ieee80211_bss_conf { int unused; };
 struct mt7996_radio_data { u32 active_mask, monitor_mask; };
-static int locks, unlocks, cleanup_calls, destroyed;
-static bool held, own_full, remap_full;
+static int locks, unlocks, cleanup_calls, destroyed, roc_aborts;
+static bool held, own_full, remap_full, expect_roc_abort;
 static struct mt7996_vif_link test_link;
 static void mutex_lock(pthread_mutex_t *m) {
     int err = pthread_mutex_lock(m);
@@ -86,7 +93,14 @@ static struct mt7996_phy *__mt7996_phy(struct mt7996_dev *d, int id) {
 static void mt7996_vif_link_destroy(struct mt7996_phy *p,
         struct mt7996_vif_link *l, struct ieee80211_vif *v, void *sta) {
     assert(held);
+    if (expect_roc_abort)
+        assert(roc_aborts == 1);
     destroyed++;
+}
+static void mt76_abort_roc(struct mt76_phy *phy) {
+    assert(!held);
+    assert(phy->roc_link);
+    roc_aborts++;
 }
 static void mt7996_remove_iter(void) {}
 static void ieee80211_iterate_active_interfaces_mtx(struct ieee80211_hw *h,
@@ -109,7 +123,7 @@ int main(int argc, char **argv) {
     struct mt7996_dev dev = {0};
     struct mt7996_phy phy = {0};
     struct mt7996_vif mvif = { .mld_group_idx = 5 };
-    struct ieee80211_vif vif = { .drv_priv = &mvif };
+    struct ieee80211_vif vif = { .drv_priv = &mvif, .type = NL80211_IFTYPE_AP };
     struct ieee80211_hw hw = { .dev = &dev };
     pthread_mutexattr_t attr;
     assert(argc == 2);
@@ -124,6 +138,21 @@ int main(int argc, char **argv) {
         assert(cleanup_calls == 1);
         assert(destroyed == (int)active);
         assert(locks == 1 && unlocks == 1 && !held);
+    } else if (!strcmp(argv[1], "mld-sta-roc-teardown")) {
+        struct mt76_vif_link roc_link = {};
+        struct mt76_phy roc_phy = { .roc_link = &roc_link, .roc_vif = &vif };
+        expect_roc_abort = true;
+        dev.radio_phy[0] = &phy;
+        dev.mld_idx_mask = BIT_ULL(5) | BIT_ULL(3);
+        dev.mld_remap_idx_mask = BIT_ULL(3);
+        mvif.mld_group_idx = mvif.mld_remap_idx = 3;
+        mvif.mt76.valid_links = 1;
+        mvif.mt76.roc_phy = &roc_phy;
+        vif.type = NL80211_IFTYPE_STATION;
+        assert(!mt7996_change_vif_links(&hw, &vif, 1, 0, NULL));
+        assert(destroyed == 1 && roc_aborts == 1);
+        assert(dev.mld_idx_mask == BIT_ULL(5) && !dev.mld_remap_idx_mask);
+        assert(!held && locks == 2 && unlocks == 2);
     } else {
         dev.mld_idx_mask = BIT_ULL(5); /* Owned by another interface. */
         own_full = !strcmp(argv[1], "mld-full");
@@ -156,7 +185,8 @@ def main():
     args = parser.parse_args()
     source = (args.source / "mt7996/main.c").read_text()
     bodies = "\n".join(function(source, name) for name in (
-        "mt7996_remove_interface", "mt7996_change_vif_links"))
+        "mt7996_vif_links_destroy", "mt7996_remove_interface",
+        "mt7996_vif_link_roc_abort", "mt7996_change_vif_links"))
     failed = False
     with tempfile.TemporaryDirectory(prefix="xr1710g-mt76-test-") as tmp:
         cfile, binary = Path(tmp) / "regression.c", Path(tmp) / "regression"
@@ -165,7 +195,7 @@ def main():
                         "-Wall", "-Werror", "-pthread", str(cfile), "-o", str(binary)],
                        check=True)
         for case in ("teardown-empty", "teardown-active", "mld-full",
-                     "mld-remap-full", "mld-success"):
+                     "mld-remap-full", "mld-success", "mld-sta-roc-teardown"):
             try:
                 result = subprocess.run([str(binary), case], timeout=3,
                                         capture_output=True, text=True)

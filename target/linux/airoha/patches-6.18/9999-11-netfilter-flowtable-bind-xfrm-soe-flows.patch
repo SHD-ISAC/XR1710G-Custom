@@ -168,7 +168,7 @@ Signed-off-by: Yanghan Ye <yyh94306@gmail.com>
  		return -ENOENT;
  
  	nf_route(nft_net(pkt), &other_dst, &fl, false, nft_pf(pkt));
-@@ -426,16 +492,34 @@
+@@ -426,17 +492,25 @@
  		return -ENOENT;
  	}
  
@@ -181,32 +181,21 @@ Signed-off-by: Yanghan Ye <yyh94306@gmail.com>
  	nft_default_forward_path(route, this_dst, dir);
  	nft_default_forward_path(route, other_dst, !dir);
  
--	if (route->tuple[dir].xmit_type	== FLOW_OFFLOAD_XMIT_NEIGH)
--		nft_dev_forward_path(pkt, route, ct, dir, ft);
--	if (route->tuple[!dir].xmit_type == FLOW_OFFLOAD_XMIT_NEIGH)
--		nft_dev_forward_path(pkt, route, ct, !dir, ft);
-+	if (route->tuple[dir].xmit_type == FLOW_OFFLOAD_XMIT_NEIGH ||
-+	    route->tuple[dir].xmit_type == FLOW_OFFLOAD_XMIT_XFRM) {
-+		if (nft_dev_forward_path(pkt, route, ct, dir, ft))
-+			goto err_release;
-+	}
-+	if (route->tuple[!dir].xmit_type == FLOW_OFFLOAD_XMIT_NEIGH ||
-+	    route->tuple[!dir].xmit_type == FLOW_OFFLOAD_XMIT_XFRM) {
-+		if (nft_dev_forward_path(pkt, route, ct, !dir, ft))
-+			goto err_release;
-+	}
+-	if (route->tuple[dir].xmit_type == FLOW_OFFLOAD_XMIT_NEIGH &&
++	if ((route->tuple[dir].xmit_type == FLOW_OFFLOAD_XMIT_NEIGH ||
++	     route->tuple[dir].xmit_type == FLOW_OFFLOAD_XMIT_XFRM) &&
+ 	    nft_dev_forward_path(pkt, route, ct, dir, ft) < 0)
+ 		goto err_dst_release;
+ 
+-	if (route->tuple[!dir].xmit_type == FLOW_OFFLOAD_XMIT_NEIGH &&
++	if ((route->tuple[!dir].xmit_type == FLOW_OFFLOAD_XMIT_NEIGH ||
++	     route->tuple[!dir].xmit_type == FLOW_OFFLOAD_XMIT_XFRM) &&
+ 	    nft_dev_forward_path(pkt, route, ct, !dir, ft) < 0)
+ 		goto err_dst_release;
  
  	return 0;
-+
-+err_release:
-+	dst_release(route->tuple[dir].dst);
-+	dst_release(route->tuple[!dir].dst);
-+	return -ENOENT;
- }
-+
- static int nft_flow_route_dir(const struct nft_pktinfo *pkt,
- 			      const struct nf_conn *ct,
- 			      struct nf_flow_route *route,
+ 
+ err_dst_release:
 --- a/net/netfilter/nft_flow_offload.c
 +++ b/net/netfilter/nft_flow_offload.c
 @@ -11,6 +11,7 @@

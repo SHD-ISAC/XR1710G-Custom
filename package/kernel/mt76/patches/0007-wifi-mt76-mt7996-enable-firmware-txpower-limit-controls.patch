@@ -1,8 +1,8 @@
 Subject: wifi: mt76: mt7996: retain firmware power-path limit extensions
 
-Rebased on mt76 467ae2e3. The power-control command, request structure and
-common enum values are now upstream; keep those implementations once.
-Preserve the local path tables, toggles and power-reporting fields.
+Rebased on mt76 0936617d. Keep upstream's SKU enable and radio rollback
+when power-control setup fails. Add the local backoff command and preserve
+the path tables and power-reporting fields.
 
 diff --git a/eeprom.c b/eeprom.c
 index 254d252..9a37d9c 100644
@@ -76,19 +76,14 @@ diff --git a/mt7996/main.c b/mt7996/main.c
 index 33995b2..41f500b 100644
 --- a/mt7996/main.c
 +++ b/mt7996/main.c
-@@ -39,6 +39,16 @@ int mt7996_run(struct mt7996_phy *phy)
+@@ -39,6 +39,11 @@ int mt7996_run(struct mt7996_phy *phy)
  	if (ret)
- 		return ret;
+ 		goto disable_radio;
  
-+	ret = mt7996_mcu_set_tx_power_ctrl(phy, UNI_TXPOWER_SKU_POWER_LIMIT_CTRL,
-+					   phy->sku_limit_en);
-+	if (ret)
-+		return ret;
-+
 +	ret = mt7996_mcu_set_tx_power_ctrl(phy, UNI_TXPOWER_BACKOFF_POWER_LIMIT_CTRL,
 +					   phy->sku_path_en);
 +	if (ret)
-+		return ret;
++		goto disable_radio;
 +
  	set_bit(MT76_STATE_RUNNING, &phy->mt76->state);
  
@@ -499,10 +494,10 @@ diff --git a/mt7996/mt7996.h b/mt7996/mt7996.h
 index 302fc00..bf3b9a4 100644
 --- a/mt7996/mt7996.h
 +++ b/mt7996/mt7996.h
-@@ -463,6 +463,8 @@ struct mt7996_phy {
- 	bool has_aux_rx;
+@@ -469,6 +469,8 @@ struct mt7996_phy {
  	bool counter_reset;
  	bool rdd_tx_paused;
+ 	bool offchan_bcn_stopped;
 +	bool sku_limit_en;
 +	bool sku_path_en;
  };

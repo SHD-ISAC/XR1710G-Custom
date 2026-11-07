@@ -96,8 +96,8 @@ index 70aea0ee0..2d65ae289 100644
 -	struct mt76_wcid *wcid = status->wcid;
 +	struct mt76_wcid *wcid;
  	struct ieee80211_hdr *hdr;
+ 	struct mt76_wcid *pn_wcid;
  	int security_idx;
- 	int ret;
 @@ -1299,6 +1301,7 @@ mt76_check_ccmp_pn(struct sk_buff *skb)
  	if (status->flag & RX_FLAG_ONLY_MONITOR)
  		return;

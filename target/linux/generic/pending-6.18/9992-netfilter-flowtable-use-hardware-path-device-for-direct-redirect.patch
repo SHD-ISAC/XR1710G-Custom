@@ -107,6 +107,6 @@ diff --git a/net/netfilter/nf_flow_table_path.c b/net/netfilter/nf_flow_table_pa
  	memset(ha, 0, sizeof(ha));
 +	nft_flow_keys_init(ct, dir, &flow);
 +	ctx.flow = &flow;
- 
- 	if (nft_flow_offload_is_bridging(pkt->skb) &&
- 	    skb_mac_header_was_set(pkt->skb)) {
+ 	if (nft_flow_offload_is_bridging(pkt->skb)) {
+ 		eth = eth_hdr(pkt->skb);
+ 		skb_dir = CTINFO2DIR(skb_get_nfct(pkt->skb) & NFCT_INFOMASK);

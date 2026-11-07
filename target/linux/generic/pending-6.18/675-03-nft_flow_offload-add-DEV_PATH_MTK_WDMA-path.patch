@@ -22,7 +22,7 @@ Signed-off-by: Yanghan Ye <yyh94306@gmail.com>
 ---
 --- a/net/netfilter/nf_flow_table_path.c
 +++ b/net/netfilter/nf_flow_table_path.c
-@@ -217,6 +217,10 @@ static void nft_dev_path_info(const stru
+@@ -217,6 +217,10 @@ static int nft_dev_path_info(const stru
  			}
  			info->xmit_type = FLOW_OFFLOAD_XMIT_DIRECT;
  			break;
@@ -31,5 +31,5 @@ Signed-off-by: Yanghan Ye <yyh94306@gmail.com>
 +				memcpy(info->h_source, path->dev->dev_addr, ETH_ALEN);
 +			break;
  		default:
- 			break;
+ 			return -1;
  		}
