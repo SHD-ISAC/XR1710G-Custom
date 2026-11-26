@@ -19,7 +19,6 @@ an7581_setup_interfaces()
 		;;
 	gemtek,xr1710g-ubi)
 		ucidef_set_interfaces_lan_wan "eth2 lan2 lan3" "eth1"
-		ucidef_set_country "US"
 		;;
 	nokia,valyrian)
 		ucidef_set_interfaces_lan_wan "lan1 lan2 lan3 eth2" "eth1"
