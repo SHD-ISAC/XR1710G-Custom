@@ -7,8 +7,6 @@
 #include <net/pkt_cls.h>
 
 struct dsa_switch;
-struct flow_action_entry;
-struct flow_cls_offload;
 struct otto_dsa_priv;
 
 int otto_tc_init(struct otto_dsa_priv *priv);
@@ -28,6 +26,8 @@ int otto_tc_930x_port_rate_police_del(struct dsa_switch *ds, int port,
 				      struct flow_cls_offload *cls,
 				      bool ingress);
 int otto_tc_930x_egress_shaper_set(struct otto_dsa_priv *priv, int port, int queue,
+				   u64 rate_bytes_ps, u32 burst);
+int otto_tc_931x_egress_shaper_set(struct otto_dsa_priv *priv, int port, int queue,
 				   u64 rate_bytes_ps, u32 burst);
 int otto_tc_931x_port_rate_police_add(struct dsa_switch *ds, int port,
 				      const struct flow_action_entry *act,

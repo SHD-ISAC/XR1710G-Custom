@@ -1,10 +1,12 @@
 # XR1710G integration and build verification
 
-Official OpenWrt main is merged into YYH's `xr1710g-6.18-integration`
-device port. The [2026-11-07 source update](xr1710g-update-2026-11-07.md)
-integrates official main `7e8bfcfe76204efc9433be341642901876eb555b`.
-Firmware `r38299-a0474cc72f` passed the full source build and independent
-image inspection. Physical-device validation remains pending.
+Official OpenWrt main is merged into the XR1710G port originally based on
+YYH's `xr1710g-6.18-integration` branch. The
+[November 26 update](xr1710g-update-2026-11-26.md) includes the upstream
+XR1710G support commit. This fork keeps its own device tree and interface
+names so retained settings continue to address the same ports. See the
+update record for the validation status of this source. Physical-device
+validation remains pending.
 
 The first October 23 build failed on a superseded mac80211 patch. The
 [follow-up correction](xr1710g-update-2026-10-23.md#follow-up-mac80211-preparation-failure-and-correction)
@@ -31,15 +33,15 @@ the corrected October 6 images; the current source also passes its teardown
 regression cases. The exact failing boot was not logged.
 
 - Device baseline: `c82129e7348fda30b9e2f90572e4f1b3c555c7f2`
-- Official main at the current source cutoff: `7e8bfcfe76204efc9433be341642901876eb555b`
-- Kernel: Linux 6.18.60
+- Official main at the current source cutoff: `f76496253dfc6a987843a32c5f18b92f668dd3e0`
+- Kernel: Linux 6.18.64
 - Wireless: mac80211 backports 7.2; mt76 2026.10.28~0936617d, package release 7
-- mac80211 package release: 14
+- mac80211 package release: 19
 - Target: `airoha/an7581`, `gemtek_xr1710g-ubi`
 
-## Current verified build (November 7, China time)
+## Historical verified build (November 7; artifact expired)
 
-[Download firmware built from `a0474cc72f`](https://github.com/SHD-ISAC/XR1710G-Custom/actions/runs/42351001144/artifacts/13566908073).
+Firmware `r38299-a0474cc72f` passed a full build and image inspection.
 The sysupgrade image is 15,860,660 bytes (15.13 MiB); recovery is 13,893,632
 bytes (13.25 MiB). The manifest retains dnsmasq-full, MT7996, the Airoha
 NPU firmware, and IPv6 support.
@@ -50,8 +52,8 @@ and ARM DNS/DHCP configuration checks passed. Both images contain Linux
 metadata retains compatibility version 2.0.
 
 See the [build and image record](xr1710g-update-2026-11-07.md#full-build-and-independent-image-checks)
-for checksums and scope. The artifact expires November 21 at 16:10 China
-time. This candidate still requires physical validation.
+for checksums and scope. The artifact expired on November 21 at 16:10 China
+time. That candidate was not validated on physical hardware.
 
 The preceding [October 25 build](xr1710g-update-2026-10-25.md#full-build-and-independent-image-checks)
 also passed its full build and image checks.
@@ -120,9 +122,10 @@ audit and build records when reviewing the correction.
 
 ## Flash compatibility: check before upgrading
 
-The XR1710G DTS and flash layout from device baseline `c82129e` are preserved.
-The actual YYH August 31 release has the same embedded DTB as this candidate.
-This does **not** establish compatibility with an older installed firmware.
+The device-specific XR1710G DTS and flash layout from device baseline
+`c82129e` are preserved. The shared SoC description has changed through
+upstream updates, so compare layout and port assignments rather than assuming
+a byte-identical DTB. Verify the layout on the installed system before upgrading.
 The image explicitly declares compatibility version **2.0**. The inherited
 XR1710G device definition warns that the BMT/BBT boundary changed: migration
 from the older layout requires an XR1710G chainloader/U-Boot matching the new

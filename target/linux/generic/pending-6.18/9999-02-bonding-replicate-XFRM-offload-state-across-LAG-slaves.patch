@@ -938,7 +938,7 @@ Signed-off-by: Jihong Min <hurryman2212@gmail.com>
  	int	(*xdo_dev_packet_xmit)(struct sk_buff *skb,
 --- a/include/net/bonding.h
 +++ b/include/net/bonding.h
-@@ -207,9 +207,24 @@ struct bond_up_slave {
+@@ -207,9 +207,24 @@
   */
  #define BOND_LINK_NOCHANGE -1
  
@@ -963,7 +963,7 @@ Signed-off-by: Jihong Min <hurryman2212@gmail.com>
  };
  
  /*
-@@ -262,8 +277,9 @@ struct bonding {
+@@ -263,8 +278,9 @@
  	struct rtnl_link_stats64 bond_stats;
  #ifdef CONFIG_XFRM_OFFLOAD
  	struct list_head ipsec_list;
@@ -974,22 +974,22 @@ Signed-off-by: Jihong Min <hurryman2212@gmail.com>
  #endif /* CONFIG_XFRM_OFFLOAD */
  	struct bpf_prog *xdp_prog;
  };
-@@ -328,6 +344,13 @@ static inline bool bond_mode_can_use_xmi
+@@ -327,6 +343,13 @@
+ 		BOND_MODE(bond) == BOND_MODE_XOR ||
+ 		BOND_MODE(bond) == BOND_MODE_TLB ||
  		BOND_MODE(bond) == BOND_MODE_ALB);
- }
- 
++}
++
 +static inline bool bond_mode_can_use_lag_xfrm(const struct bonding *bond)
 +{
 +	return (BOND_MODE(bond) == BOND_MODE_8023AD ||
 +		BOND_MODE(bond) == BOND_MODE_XOR) &&
 +	       bond->params.xmit_policy == BOND_XMIT_POLICY_LAYER34;
-+}
-+
+ }
+ 
  static inline bool bond_mode_uses_xmit_hash(const struct bonding *bond)
- {
- 	return (BOND_MODE(bond) == BOND_MODE_8023AD ||
-@@ -714,6 +737,10 @@ int bond_update_slave_arr(struct bonding
- void bond_slave_arr_work_rearm(struct bonding *bond, unsigned long delay);
+@@ -716,6 +739,10 @@
+ void bond_peer_notify_work_rearm(struct bonding *bond, unsigned long delay);
  void bond_work_init_all(struct bonding *bond);
  void bond_work_cancel_all(struct bonding *bond);
 +#if IS_ENABLED(CONFIG_XFRM_OFFLOAD)

@@ -85,6 +85,11 @@ jobs:
           set -o pipefail
           bash scripts/tests/check-xr1710g-mt76.sh 2>&1 | tee mt76-patch-check.log
 
+      - name: Check XR1710G upgrade and factory calibration handling
+        run: |
+          set -o pipefail
+          python3 scripts/tests/xr1710g-upgrade-regression.py 2>&1 | tee upgrade-regression.log
+
       - name: Build firmware from source
         run: |
           set -o pipefail
@@ -100,6 +105,8 @@ jobs:
           device = profiles['profiles']['gemtek_xr1710g-ubi']
           images = device['images']
           assert any(x['type'] == 'sysupgrade' for x in images), images
+          assert any(x['name'].endswith('-initramfs-recovery.itb') for x in images), images
+          assert not list(out.glob('*xr1710g*chainload-uboot*'))
           for image in images:
               assert (out / image['name']).stat().st_size > 0
           print('XR1710G image metadata and files verified')
@@ -150,6 +157,7 @@ jobs:
             build.config
             mac80211-patch-check.log
             mt76-patch-check.log
+            upgrade-regression.log
             dnsmasq-regression.log
             forward-path-regression.log
             logs/

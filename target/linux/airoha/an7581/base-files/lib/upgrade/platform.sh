@@ -1,6 +1,118 @@
-RAMFS_COPY_BIN='fitblk fit_check_sign'
+RAMFS_COPY_BIN='fitblk fit_check_sign tr mktemp wc'
 
 REQUIRE_IMAGE_METADATA=1
+
+gemtek_mac_valid() {
+	local mac="$1"
+
+	printf '%s\n' "$mac" | grep -qE '^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}$' || return 1
+	case "$mac" in
+	00:00:00:00:00:00|ff:ff:ff:ff:ff:ff|FF:FF:FF:FF:FF:FF|?[13579bBdDfF]:*)
+		return 1
+		;;
+	esac
+}
+
+gemtek_factory_valid() {
+	local vol="$1"
+	local off mac
+
+	[ "$(hexdump -v -n 2 -e '2/1 "%02x"' "$vol")" = "9079" ] || return 1
+
+	for off in $((0x5000)) $((0x6000)); do
+		mac="$(hexdump -v -s "$off" -n 6 -e '5/1 "%02x:" 1/1 "%02x"' "$vol")"
+		gemtek_mac_valid "$mac" || return 1
+	done
+}
+
+gemtek_mac_bytes() {
+	printf '%b' "$(printf '%s' "$1" | sed 's/^/\\x/;s/:/\\x/g')"
+}
+
+# The factory volume (MT7996 EEPROM and the MAC addresses) is built from the
+# vendor partition, which the install leaves untouched. Rebuild it when it is
+# missing or empty, as after the chainloader formatted the ubi partition.
+gemtek_prepare_factory() (
+	local prefix="$1"
+	local ubidev vol mtd dsd ebs off eeprom wan lan fan serial mac
+	local work blob
+
+	ubidev="$(nand_find_ubi ubi)" || return 1
+	[ -n "$ubidev" ] || return 1
+	vol="$(nand_find_volume "$ubidev" factory)"
+	[ -n "$vol" ] && gemtek_factory_valid "/dev/$vol" && return 0
+
+	mtd="$(find_mtd_index vendor)"
+	[ -n "$mtd" ] || return 1
+	mtd="/dev/mtd$mtd"
+
+	work="$(mktemp -d /tmp/xr1710g-factory.XXXXXX)" || return 1
+	trap 'rm -rf "$work"' EXIT
+	trap 'exit 1' HUP INT TERM
+	blob="$work/factory.bin"
+
+	dd if="$mtd" of="$work/dsd" bs=4096 skip=$((0x400000 / 4096)) count=1 2>/dev/null || return 1
+	[ "$(wc -c < "$work/dsd")" -eq 4096 ] || return 1
+	dsd="$(tr -c ' -~' '\n' < "$work/dsd")"
+	wan="$(echo "$dsd" | sed -n '/^wan_mac=/{s///p;q}')"
+	lan="$(echo "$dsd" | sed -n '/^lan_mac=/{s///p;q}')"
+	fan="$(echo "$dsd" | sed -n '/^fan_id=/{s///p;q}')"
+	serial="$(echo "$dsd" | sed -n '/^serial_number=/{s///p;q}')"
+
+	case "$serial" in
+	$prefix*) ;;
+	*)
+		v "factory: serial number '$serial' does not match, not rebuilding"
+		return 1
+		;;
+	esac
+
+	for mac in "$wan" "$lan"; do
+		gemtek_mac_valid "$mac" || {
+			v "factory: invalid MAC '$mac' in the vendor partition, not rebuilding"
+			return 1
+		}
+	done
+
+	# The EEPROM is in the first good block from 0x405000.
+	ebs="$(cat /sys/class/mtd/${mtd#/dev/}/erasesize)"
+	case "$ebs" in
+	''|*[!0-9]*) return 1 ;;
+	esac
+	[ "$ebs" -ge 512 ] && [ "$((ebs % 512))" -eq 0 ] || return 1
+	for off in 0 1 2 3; do
+		off=$((0x405000 + off * ebs))
+		[ "$(hexdump -v -s "$off" -n 2 -e '2/1 "%02x"' "$mtd")" = "9079" ] && {
+			eeprom="$off"
+			break
+		}
+	done
+	[ -n "$eeprom" ] || {
+		v "factory: no EEPROM in the vendor partition, not rebuilding"
+		return 1
+	}
+
+	# A successful short dd is still incomplete calibration data. Validate
+	# the read before padding the final volume with zeros.
+	dd if="$mtd" of="$work/eeprom" bs=512 skip=$((eeprom / 512)) count=15 2>/dev/null || return 1
+	[ "$(wc -c < "$work/eeprom")" -eq $((0x1e00)) ] || return 1
+	dd if=/dev/zero of="$blob" bs=4096 count=16 2>/dev/null || return 1
+	dd if="$work/eeprom" of="$blob" conv=notrunc 2>/dev/null || return 1
+	gemtek_mac_bytes "$wan" | dd of="$blob" bs=4096 seek=5 conv=notrunc 2>/dev/null || return 1
+	gemtek_mac_bytes "$lan" | dd of="$blob" bs=4096 seek=6 conv=notrunc 2>/dev/null || return 1
+	printf '%s' "$fan" | dd of="$blob" bs=4096 seek=7 conv=notrunc 2>/dev/null || return 1
+	printf '%s' "$serial" | dd of="$blob" bs=4096 seek=8 conv=notrunc 2>/dev/null || return 1
+	[ "$(wc -c < "$blob")" -eq $((0x10000)) ] || return 1
+	gemtek_factory_valid "$blob" || return 1
+
+	if [ -z "$vol" ]; then
+		ubimkvol "/dev/$ubidev" -N factory -t static -s $((0x10000)) || return 1
+		vol="$(nand_find_volume "$ubidev" factory)"
+	fi
+	[ -n "$vol" ] || return 1
+	ubiupdatevol "/dev/$vol" "$blob" && \
+		v "factory: rebuilt from the vendor partition (WAN $wan, LAN $lan)"
+)
 
 nokia_initial_setup()
 {
@@ -19,6 +131,7 @@ platform_check_image() {
 		nand_do_platform_check "$board" "$1"
 		return $?
 		;;
+	gemtek,xr1710g-ubi|\
 	nokia,xg-040g-md-ubi|\
 	quantum,q1000k-ubi)
 		fit_check_image "$1"
@@ -33,12 +146,13 @@ platform_do_upgrade() {
 	local board=$(board_name)
 
 	case "$board" in
+		gemtek,xr1710g-ubi)
+			gemtek_prepare_factory XR1710G || return 1
+			fit_do_upgrade "$1"
+			;;
 		gemtek,w1700k-ubi|\
 		nokia,xg-040g-md-ubi|\
 		quantum,q1000k-ubi)
-			fit_do_upgrade "$1"
-			;;
-		gemtek,xr1710g-ubi)
 			fit_do_upgrade "$1"
 			;;
 		*)

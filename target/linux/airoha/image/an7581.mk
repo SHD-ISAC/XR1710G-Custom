@@ -113,6 +113,8 @@ define Device/gemtek_xr1710g-ubi
   DEVICE_ALT0_VENDOR := Brightspeed
   DEVICE_ALT0_MODEL := XR1710G
   DEVICE_ALT0_VARIANT := UBI
+  # Use the fork's DT for its existing interface names and PCIe/PHY
+  # settings. Upstream's profile uses the shared Gemtek DT.
   DEVICE_DTS := an7581-xr1710g-ubi
   SUPPORTED_DEVICES += econet,xr1710g-ubi
   DEVICE_COMPAT_VERSION := 2.0

@@ -20,10 +20,6 @@ an7581_setup_interfaces()
 	gemtek,xr1710g-ubi)
 		ucidef_set_interfaces_lan_wan "eth2 lan2 lan3" "eth1"
 		ucidef_set_country "US"
-		ucidef_set_wireless "2g" "XR1710G"
-		ucidef_set_wireless "5g" "XR1710G-5G"
-		ucidef_set_wireless "6g" "XR1710G-6G"
-		ucidef_set_root_password_plain "password"
 		;;
 	nokia,valyrian)
 		ucidef_set_interfaces_lan_wan "lan1 lan2 lan3 eth2" "eth1"
