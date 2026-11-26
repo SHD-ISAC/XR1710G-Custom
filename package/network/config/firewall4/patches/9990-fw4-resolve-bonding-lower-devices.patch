@@ -7,27 +7,27 @@ device set. Treat bonding devices the same way, otherwise a bridge member
 that is a bond master leaves bond0 in the hardware offload flowtable. That
 prevents per-port offload drivers from seeing the real physical devices.
 
+Use the shared lower-device traversal so the upstream WDS prefix
+handling remains active for wireless members of a bond.
+
 Assisted-by: Codex:gpt-5.5
 Signed-off-by: Jihong Min <hurryman2212@gmail.com>
 ---
 --- a/root/usr/share/ucode/fw4.uc
 +++ b/root/usr/share/ucode/fw4.uc
-@@ -439,7 +439,18 @@ function resolve_lower_devices(devstatus
+@@ -481,9 +481,15 @@
+ 		let devtype = devstatus[devname]?.devtype ??
+ 			match(fs.readfile(`/sys/class/net/${devname}/uevent`), /DEVTYPE=([^\n]+)/)?.[1];
  
- 			break;
- 
++		// Detect a bond even if netifd has not reported its type yet.
++		if (fs.access(`/sys/class/net/${devname}/bonding`))
++			devtype = 'bond';
++
+ 		switch (devtype) {
+ 		case 'vlan':
+ 		case 'bridge':
++		case 'bond':
 +		case 'bonding':
- 		default:
-+			if (fs.access(`/sys/class/net/${devname}/bonding`)) {
-+				let e;
-+
-+				while ((e = dir.read()) != null)
-+					if (index(e, "lower_") === 0)
-+						push(devs, ...resolve_lower_devices(devstatus, substr(e, 6)));
-+
-+				break;
-+			}
-+
- 			push(devs, devname);
+ 			let e;
  
- 			break;
+ 			while ((e = dir.read()) != null)

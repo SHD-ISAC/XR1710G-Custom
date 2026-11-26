@@ -75,6 +75,11 @@ jobs:
           set -o pipefail
           make download -j8 V=s 2>&1 | tee download.log
 
+      - name: Check firewall4 patch application
+        run: |
+          set -o pipefail
+          bash scripts/tests/check-xr1710g-firewall4.sh 2>&1 | tee firewall4-patch-check.log
+
       - name: Check complete mac80211 patch stack and management-frame regressions
         run: |
           set -o pipefail
@@ -155,6 +160,7 @@ jobs:
             build.log
             download.log
             build.config
+            firewall4-patch-check.log
             mac80211-patch-check.log
             mt76-patch-check.log
             upgrade-regression.log
