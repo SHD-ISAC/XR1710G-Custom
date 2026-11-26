@@ -39,6 +39,20 @@ regression cases. The exact failing boot was not logged.
 - mac80211 package release: 19
 - Target: `airoha/an7581`, `gemtek_xr1710g-ubi`
 
+## Current verified build (November 26)
+
+Firmware `r38692-ec9021235b` passed its
+[full build](https://github.com/SHD-ISAC/XR1710G-Custom/actions/runs/45841303317)
+and independent inspection of both images. The sysupgrade image is
+15,754,164 bytes (15.02 MiB) and recovery is 13,762,560 bytes (13.125 MiB).
+The images both contain Linux 6.18.64, and the sysupgrade metadata declares
+compatibility 2.0.
+
+[Download firmware](https://github.com/SHD-ISAC/XR1710G-Custom/actions/runs/45841303317/artifacts/15132827050)
+until December 10 at 23:31 China time. See the
+[verification record](xr1710g-update-2026-11-26.md#verified-firmware-build)
+for checksums and coverage. Physical-device validation remains pending.
+
 ## Historical verified build (November 7; artifact expired)
 
 Firmware `r38299-a0474cc72f` passed a full build and image inspection.
